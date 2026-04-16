@@ -1,16 +1,25 @@
 import supabase from "../config/supabase.js";
 import {
   createUserInDB,
+  findUserById,
   UserInsert,
 } from "../models/user.model.js";
 
-// Ini data payload yang nanti dikirim frontend
+// Ini data payload register
 export interface RegisterPayload {
   first_name: string;
   last_name: string;
   email: string;
   password: string;
 }
+
+// ini data payload login
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+// logic buat register
 export const registerUserService = async (body: RegisterPayload) => {
   const { first_name, last_name, email, password } = body;
 
@@ -38,4 +47,33 @@ export const registerUserService = async (body: RegisterPayload) => {
 
   // simpen ke database
   return await createUserInDB(newUserData);
+};
+
+// logic buat login
+export const loginUserService = async (body: LoginPayload) => {
+  const { email, password } = body;
+
+  // cek/buka brankas di supabase
+  const { data: authData, error: authError } =
+    await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+  if (authError) {
+    throw new Error("Email atau password salah");
+  }
+
+  if (!authData.user || !authData.session) {
+    throw new Error("Gagal mengambil sesi login");
+  }
+
+  // ambil data profil dari tabel public.user
+  const userProfile = await findUserById(authData.user.id);
+
+  // return access token sama data profile nya
+  return {
+    token: authData.session.access_token,
+    user: userProfile,
+  };
 };

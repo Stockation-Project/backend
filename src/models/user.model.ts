@@ -1,3 +1,4 @@
+import { threadCpuUsage } from "node:process";
 import supabase from "../config/supabase.js";
 
 // interfase buat typescript
@@ -19,3 +20,14 @@ export const createUserInDB = async (userData: UserInsert) => {
   return data[0];
 };
 
+// logic buat ngambil data profile user buat login
+export const findUserById = async (id: string) => {
+  const { data, error } = await supabase
+    .from("users")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error) throw error;
+  return data;
+};
