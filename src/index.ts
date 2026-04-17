@@ -4,6 +4,7 @@ import * as dotenv from "dotenv";
 import userRoutes from "./routes/user.routes.js";
 import questionnaireRouter from "./routes/questionnaire.routes.js";
 import portfolioRouter from "./routes/portfolio.routes.js";
+import stockRoutes from "./routes/stock.routes.js";
 
 dotenv.config();
 
@@ -21,6 +22,9 @@ app.use('/api/questionnaire', questionnaireRouter)
 
 // buat create portoflio
 app.use('/api/portfolios', portfolioRouter)
+
+//buat stock
+app.use('/api/stocks', stockRoutes)
 
 app.get("/", (req, res) => {
   res.json({ message: "Server Stockation API berjalan dengan baik!" });
