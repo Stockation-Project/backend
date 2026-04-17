@@ -31,3 +31,19 @@ export const findUserById = async (id: string) => {
   if (error) throw error;
   return data;
 };
+
+// logic buat isi risk profile user
+export const updateUserRiskProfile = async (
+  id: string,
+  riskProfile: string,
+) => {
+  const { data, error } = await supabase
+    .from("users")
+    .update({ risk_profile: riskProfile })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
