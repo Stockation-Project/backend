@@ -20,3 +20,63 @@ export const createPortfolioInDb = async (
   if (error) throw error;
   return data[0];
 };
+
+// ambil data portfolio
+export const getPortfolioById = async (portfolioId: string, userId: string) => {
+  const { data, error } = await supabase
+    .from("portfolios")
+    .select("*")
+    .eq("id", portfolioId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+};
+
+// update saldo di portfolio
+export const updatePortfolioBalance = async (
+  portfolioId: string,
+  newCash: number,
+  newInvested: number,
+) => {
+  const { data, error } = await supabase
+    .from("portfolios")
+    .update({
+      cash_balance: newCash,
+      invested_balance: newInvested,
+    })
+    .eq("id", portfolioId)
+    .select()
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+};
+
+// narik data dari tabel portfolio holdings
+export const getPortfolioWithHoldings = async (
+  portfolioId: string,
+  userId: string,
+) => {
+  const { data, error } = await supabase
+    .from("portfolios")
+    .select(
+      `
+      *,
+      portfolio_holdings (
+        id,
+        ticker,
+        total_shares,
+        avg_buy_price,
+        updated_at
+      )
+    `,
+    )
+    .eq("id", portfolioId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+};

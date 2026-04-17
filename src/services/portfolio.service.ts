@@ -1,4 +1,4 @@
-import { createPortfolioInDb } from "../models/portfolio.model.js";
+import { createPortfolioInDb, getPortfolioWithHoldings } from "../models/portfolio.model.js";
 import { deductWalletBalance, getWalletById } from "../models/wallet.model.js";
 
 export interface CreatePortfolioPayload {
@@ -41,4 +41,19 @@ export const createPortfolioService = async (
     portfolio: newPortfolio,
     remaining_main_balance: wallet.balance - allocated_fund,
   };
-};;
+};
+
+export const fetchPortfolioDetailService = async (
+  portfolioId: string,
+  userId: string,
+) => {
+  const portfolio = await getPortfolioWithHoldings(portfolioId, userId);
+
+  if (!portfolio) {
+    throw new Error(
+      "Portofolio tidak ditemukan atau Anda tidak memiliki akses.",
+    );
+  }
+
+  return portfolio;
+};
