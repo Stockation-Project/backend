@@ -10,3 +10,14 @@ export const getAllStocks = async () => {
   if (error) throw error;
   return data;
 };
+
+export const getStockDetailFromDB = async (ticker: string) => {
+  const { data, error } = await supabase
+    .from("stocks")
+    .select("*")
+    .eq("ticker", ticker)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+};

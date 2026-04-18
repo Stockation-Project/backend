@@ -1,6 +1,6 @@
 import { Response } from "express";
 import { AuthRequest } from "../middleware/auth.middleware.js";
-import { fetchAllStocksService } from "../services/stock.service.js";
+import { fetchAllStocksService, fetchStockDetailService } from "../services/stock.service.js";
 
 export const getStocksController = async (
   req: AuthRequest,
@@ -19,5 +19,23 @@ export const getStocksController = async (
       success: false,
       message: error.message,
     });
+  }
+};
+
+export const getStockDetailController = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const ticker = req.params.ticker as string;
+    const detail = await fetchStockDetailService(ticker);
+
+    res.status(200).json({
+      success: true,
+      message: `Berhasil mengambil detail saham ${ticker}`,
+      data: detail,
+    });
+  } catch (error: any) {
+    res.status(404).json({ success: false, message: error.message });
   }
 };
