@@ -1,5 +1,6 @@
 import supabase from "../config/supabase.js";
 
+// ambil saham dari porto yang udah di buat user 
 export const getPortfolioHolding = async (
   portfolioId: string,
   ticker: string,
@@ -15,6 +16,7 @@ export const getPortfolioHolding = async (
   return data;
 };
 
+// update porto jika user beli saham
 export const upsertPortfolioHolding = async (
   portfolioId: string,
   ticker: string,
@@ -42,3 +44,15 @@ export const upsertPortfolioHolding = async (
   if (error) throw error;
   return data;
 };
+
+// ini hapus saham kalo user jual saham nya
+export const deletePortfolioHolding = async (holdingId: string) => {
+  const { error } = await supabase
+    .from("portfolio_holdings")
+    .delete()
+    .eq("id", holdingId);
+
+  if (error) throw error;
+  return true;
+};
+

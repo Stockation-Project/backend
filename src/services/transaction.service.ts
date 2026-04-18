@@ -1,11 +1,12 @@
 import {
   getPortfolioHolding,
   upsertPortfolioHolding,
+  deletePortfolioHolding,
 } from "../models/holding.model.js";
 import {
   getPortfolioById,
   updatePortfolioBalance,
-  getPortfolioWithHoldings
+  getPortfolioWithHoldings,
 } from "../models/portfolio.model.js";
 
 export interface BuyStockPayload {
@@ -15,6 +16,14 @@ export interface BuyStockPayload {
   current_price: number; // ini diambil dari API FE
 }
 
+export interface SellStockPayload {
+  portfolio_id: string;
+  ticker: string;
+  lots: number;
+  current_price: number;
+}
+
+// ini logic buat beli saham yee
 export const buyStockService = async (
   userId: string,
   payload: BuyStockPayload,
@@ -81,5 +90,85 @@ export const buyStockService = async (
     },
     updated_potfolio: updatePortfolio,
     holding: holding,
+  };
+};
+
+// ini logic buat jual saham
+export const sellStockService = async (
+  userId: string,
+  payload: SellStockPayload,
+) => {
+  const { portfolio_id, ticker, lots, current_price } = payload;
+  if (lots <= 0) {
+    throw new Error("Jumlah lots harus lebih dari 0");
+  }
+
+  const sharesToSell = lots * 100;
+  // ini uang hasil jual
+  const totalRevenue = sharesToSell * current_price;
+
+  // cek portfolio
+  const portfolio = await getPortfolioById(portfolio_id, userId);
+  if (!portfolio) {
+    throw new Error("Portfolio tidak ditemukan");
+  }
+
+  // cek apa user punya saham ini atau engga
+  const existingHolding = await getPortfolioHolding(portfolio_id, ticker);
+  if (!existingHolding) {
+    throw new Error(`Anda tidak memiliki saham ${ticker} di portfolio ini`);
+  }
+
+  // cek jumlah lembar saham, cukup ga buat dijual
+  if (existingHolding.total_shares < sharesToSell) {
+    throw new Error(
+      `Lembar saham tidak cukup, anda hanya memiliki ${existingHolding.total_shares / 100} Lot ${ticker}`,
+    );
+  }
+
+  // kalkulasi modal yang dikeluarkan
+  const costBasicOfSoldShares = sharesToSell * existingHolding.avg_buy_price;
+  const realizedProfit = totalRevenue - costBasicOfSoldShares;
+
+  // update atau hapus holding
+  const remainingShares = (existingHolding.total_shares = sharesToSell);
+  let updatedHolding = null;
+
+  if (remainingShares === 0) {
+    // jika user jual semua saham
+    await deletePortfolioHolding(existingHolding.id);
+  } else {
+    // jika user jual sebagian saham
+    updatedHolding = await upsertPortfolioHolding(
+      portfolio_id,
+      ticker,
+      remainingShares,
+      existingHolding.avg_buy_price,
+    );
+  }
+
+  // update saldo di porto
+  // cash nya nambah dari hasil jualan, inves nya ngurang sesuai modal awal yang dikeluarkan
+  const newCash = Number(portfolio.cash_balance) + totalRevenue;
+  const newInvested =
+    Number(portfolio.invested_balance) - costBasicOfSoldShares;
+
+  const updatedPortfolio = await updatePortfolioBalance(
+    portfolio_id,
+    newCash,
+    newInvested,
+  );
+
+  return {
+    transaction_detail: {
+      action: "SELL",
+      ticker,
+      lots_sold: lots,
+      sell_price: current_price,
+      total_revenue: totalRevenue,
+      realized_profit_loss: realizedProfit,
+    },
+    updated_portfolio: updatedPortfolio,
+    holding: updatedHolding ? updatedHolding : "Saham habis terjual",
   };
 };
