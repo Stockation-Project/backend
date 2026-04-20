@@ -1,4 +1,9 @@
-import { getAllStocks, getStockDetailFromDB } from "../models/stock.model.js";
+import {
+  getAllStocks,
+  getStockDetailFromDB,
+  getUserRiskProfile,
+  getStocksByRiskLevel,
+} from "../models/stock.model.js";
 import YahooFinance from "yahoo-finance2";
 
 const yahooFinance = new YahooFinance({
@@ -65,7 +70,7 @@ export const fetchExploreStocksService = async () => {
   // ambil saham dari database
   const dbStocks = await getAllStocks();
   if (!dbStocks || dbStocks.length === 0) {
-    return { gainers: [], losers: [], all_stocks:[] };
+    return { gainers: [], losers: [], all_stocks: [] };
   }
 
   const mergedDataPromises = dbStocks.map(async (dbStock: any) => {
@@ -119,3 +124,61 @@ export const fetchExploreStocksService = async () => {
     all_stocks: mergedData,
   };
 };
+
+export const fetchRecommendedStocksService = async (userId: string) => {
+  const userPersona = await getUserRiskProfile(userId);
+  const personaLokal = userPersona.toLowerCase();
+
+  const riskMapping: Record<string, string> = {
+    lion: "High",
+    eagle: "High", 
+    wolf: "Medium",
+    bear: "Medium",
+    hippo: "Low",
+    turtle: "Low",
+  };
+
+  // Ambil terjemahannya. Jika hewan tidak ditemukan di kamus, amankan ke 'Low'
+  const targetRiskLevel = riskMapping[personaLokal] || "Low";
+
+  // 3. Cari saham di database menggunakan hasil terjemahan ("High", "Medium", dll)
+  const recommendedDbStocks = await getStocksByRiskLevel(targetRiskLevel);
+
+  // 3. Tarik harga real-time secara paralel (Sama seperti halaman Explore)
+  const recommendationsPromises = recommendedDbStocks.map(
+    async (dbStock: any) => {
+      const cleanTicker = dbStock.ticker.trim();
+      const yahooTicker = `${cleanTicker}.JK`;
+
+      try {
+        const quote: any = await yahooFinance.quote(yahooTicker);
+
+        return {
+          ticker: cleanTicker,
+          name: dbStock.name,
+          risk_level: dbStock.risk_level,
+          is_anomaly: dbStock.is_anomaly,
+          current_price: quote?.regularMarketPrice || 0,
+          change_percent: quote?.regularMarketChangePercent || 0,
+        };
+      } catch (error) {
+        return {
+          ticker: cleanTicker,
+          name: dbStock.name,
+          risk_level: dbStock.risk_level,
+          is_anomaly: dbStock.is_anomaly,
+          current_price: 0,
+          change_percent: 0,
+        };
+      }
+    },
+  );
+
+  const recommendations = await Promise.all(recommendationsPromises);
+
+  return {
+    user_risk_profile: userPersona, // Tampilkan aslinya ("lion") untuk keperluan UI
+    mapped_risk_level: targetRiskLevel, // Tampilkan hasil konversinya ("High")
+    recommendations: recommendations,
+  };
+};;

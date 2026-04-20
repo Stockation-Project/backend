@@ -4,6 +4,7 @@ import {
   fetchAllStocksService,
   fetchStockDetailService,
   fetchExploreStocksService,
+  fetchRecommendedStocksService
 } from "../services/stock.service.js";
 
 export const getStocksController = async (
@@ -54,6 +55,24 @@ export const getExploreStocksController = async (
     res.status(200).json({
       success: true,
       message: "Berhasil mengambil data Explore (Gainers & Losers)",
+      data: data,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getRecommendedStocksController = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const userId = req.user.id as string; // Ambil ID dari token JWT
+    const data = await fetchRecommendedStocksService(userId);
+
+    res.status(200).json({
+      success: true,
+      message: `Berhasil mengambil rekomendasi saham untuk profil ${data.user_risk_profile}`,
       data: data,
     });
   } catch (error: any) {

@@ -1,3 +1,4 @@
+import supabase from "../config/supabase.js";
 import { updateUserRiskProfile } from "../models/user.model.js";
 import { createWallet } from "../models/wallet.model.js";
 
