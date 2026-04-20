@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  getDashboardController,
   loginController,
   registerController,
 } from "../controllers/user.controller.js";
@@ -19,5 +20,7 @@ userRoutes.get("/profile", requireAuth, (req: AuthRequest, res) => {
     user_token: req.user,
   });
 });
+
+userRoutes.get("/dashboard", requireAuth, getDashboardController);
 
 export default userRoutes;

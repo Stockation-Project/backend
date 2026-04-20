@@ -131,7 +131,7 @@ export const sellStockService = async (
   const realizedProfit = totalRevenue - costBasicOfSoldShares;
 
   // update atau hapus holding
-  const remainingShares = (existingHolding.total_shares = sharesToSell);
+  const remainingShares = (existingHolding.total_shares - sharesToSell);
   let updatedHolding = null;
 
   if (remainingShares === 0) {

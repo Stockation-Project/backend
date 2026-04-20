@@ -4,7 +4,9 @@ import {
   loginUserService,
   RegisterPayload,
   LoginPayload,
+  getDashboardSummaryService
 } from "../services/user.service.js";
+import { AuthRequest } from "../middleware/auth.middleware.js";
 
 // menyisipkan tipe register payload tadi ke request body
 export const registerController = async (
@@ -44,5 +46,23 @@ export const loginController = async (
       success: false,
       message: error.message,
     });
+  }
+};
+
+export const getDashboardController = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const userId = req.user.id as string;
+    const dashboardData = await getDashboardSummaryService(userId);
+
+    res.status(200).json({
+      success: true,
+      message: "Berhasil memuat data dashboard utama",
+      data: dashboardData,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
