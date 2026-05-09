@@ -6,6 +6,8 @@ import questionnaireRouter from "./routes/questionnaire.routes.js";
 import portfolioRouter from "./routes/portfolio.routes.js";
 import stockRoutes from "./routes/stock.routes.js";
 import transactionRoutes from "./routes/transaction.routes.js";
+import walletRouter from "./routes/wallet.routes.js";
+
 
 dotenv.config();
 
@@ -29,6 +31,8 @@ app.use('/api/stocks', stockRoutes)
 
 // buat transactoin
 app.use('/api/transactions', transactionRoutes)
+
+app.use("/api/wallets", walletRouter);
 
 app.get("/", (req, res) => {
   res.json({ message: "Server Stockation API berjalan dengan baik!" });

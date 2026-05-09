@@ -73,3 +73,23 @@ export const deductWalletBalance = async (
   if (error) throw error;
   return data;
 };
+
+export const addWalletBalance = async (userId: string, amount: number) => {
+  // 1. Ambil wallet saat ini
+  const existingWallet = await getWalletById(userId);
+  if (!existingWallet) throw new Error("Dompet tidak ditemukan");
+
+  // 2. Jumlahkan saldo
+  const newBalance = Number(existingWallet.balance) + amount;
+
+  // 3. Update ke Supabase
+  const { data, error } = await supabase
+    .from("wallets")
+    .update({ balance: newBalance })
+    .eq("user_id", userId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
