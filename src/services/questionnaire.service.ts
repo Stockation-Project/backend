@@ -1,6 +1,6 @@
 import supabase from "../config/supabase.js";
 import { updateUserRiskProfile } from "../models/user.model.js";
-import { createWallet } from "../models/wallet.model.js";
+import { findOrCreateWallet } from "../models/wallet.model.js";
 
 export interface QuestionnairePayload {
   answers: number[];
@@ -38,8 +38,8 @@ export const processQuestionnaireService = async (
   // update profile dan skor user di db
   const updatedUser = await updateUserRiskProfile(userId, assignedProfile, totalScore);
 
-  // isiin dompet user 100jt
-  const newWallet = await createWallet(userId);
+  // isiin dompet user 100jt (safe: skip jika wallet sudah ada — cegah error 500 saat retake)
+  const newWallet = await findOrCreateWallet(userId);
 
   return {
     user: updatedUser,
