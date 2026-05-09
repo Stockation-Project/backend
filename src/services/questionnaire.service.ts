@@ -18,7 +18,11 @@ export const processQuestionnaireService = async (
   }
 
   // hitung total score dari array jawaban
-  const totalScore = answers.reduce((sum, current) => sum + current, 0);
+  const totalScore = answers.reduce((sum, current) => sum + Number(current), 0);
+
+  // TAMBAHKAN CONSOLE LOG INI SEMENTARA UNTUK BUKTI:
+  console.log("HASIL TOTAL SCORE:", totalScore);
+  console.log("TIPE DATANYA:", typeof totalScore);
 
   // logic penentuan profile
   let assignedProfile = "capybara";
