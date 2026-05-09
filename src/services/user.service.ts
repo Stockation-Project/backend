@@ -95,7 +95,7 @@ export const getDashboardSummaryService = async (userId: string) => {
   // 1. Ambil Profil User (Nama & Persona)
   const { data: user, error: userError } = await supabase
     .from("users")
-    .select("first_name, risk_profile")
+    .select("first_name, risk_profile, risk_score")
     .eq("id", userId)
     .single();
   if (userError) throw new Error("Gagal mengambil data user.");
@@ -148,6 +148,7 @@ export const getDashboardSummaryService = async (userId: string) => {
     user_info: {
       greeting: `Haloo, ${user.first_name}`,
       risk_profile: user.risk_profile,
+      risk_score: user.risk_score ?? 0,
       profile_description:
         personaDescriptions[personaLokal] || personaDescriptions["capybara"],
     },

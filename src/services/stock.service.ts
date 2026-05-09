@@ -32,26 +32,73 @@ export const fetchStockDetailService = async (ticker: string) => {
   //ambil Harga Saat Ini dari Yahoo Finance
   const quote: any = await yahooFinance.quote(yahooTicker);
 
-  // ambil data grafik 1 bulan terakhir
-  const today = new Date();
-  const oneMonthAgo = new Date();
-  oneMonthAgo.setMonth(today.getMonth() - 1);
+  // 3. Ambil Data Fundamental (DER & Dividen) menggunakan quoteSummary
+  let der = null;
+  let dividend = null;
+  try {
+    const summary: any = await yahooFinance.quoteSummary(yahooTicker, {
+      modules: ["financialData", "summaryDetail"],
+    });
+    // DER biasanya dalam angka desimal (misal 25.5 berarti 25.5%)
+    der = summary?.financialData?.debtToEquity || null;
 
-  const period1 = oneMonthAgo.toISOString().split("T")[0];
-  const period2 = today.toISOString().split("T")[0];
+    // Dividen Yield (misal 0.05 berarti 5%)
+    dividend =
+      summary?.summaryDetail?.dividendYield ||
+      quote?.trailingAnnualDividendYield ||
+      null;
+  } catch (error) {
+    console.log(`Gagal mengambil data fundamental untuk ${ticker}`);
+  }
+
+  // 4. Kalkulasi CAGR 3 Tahun
+  let cagr3Y = null;
+  try {
+    const today = new Date();
+    const threeYearsAgo = new Date();
+    threeYearsAgo.setFullYear(today.getFullYear() - 3);
+
+    // Ambil histori harga tepat 3 tahun yang lalu (beri rentang 7 hari agar pasti kena hari kerja bursa)
+    const period1 = threeYearsAgo.toISOString().split("T")[0];
+    const period2 = new Date(threeYearsAgo.getTime() + 7 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0];
+
+    const historical3Y: any = await yahooFinance.historical(yahooTicker, {
+      period1: period1,
+      period2: period2,
+      interval: "1d" as "1d",
+    });
+
+    if (historical3Y && historical3Y.length > 0) {
+      const beginningPrice = historical3Y[0].close; // Vi
+      const endingPrice = quote.regularMarketPrice; // Vf
+      const t = 3; // 3 Tahun
+
+      // Rumus CAGR
+      cagr3Y = Math.pow(endingPrice / beginningPrice, 1 / t) - 1;
+    }
+  } catch (error) {
+    console.log(`Gagal menghitung CAGR untuk ${ticker}`);
+  }
+
+  // 5. Ambil Data Grafik 1 Bulan Terakhir
+  const todayDate = new Date();
+  const oneMonthAgo = new Date();
+  oneMonthAgo.setMonth(todayDate.getMonth() - 1);
 
   const chartResult: any = await yahooFinance.chart(yahooTicker, {
-    period1: period1,
-    period2: period2,
+    period1: oneMonthAgo.toISOString().split("T")[0],
+    period2: todayDate.toISOString().split("T")[0],
     interval: "1d" as "1d",
   });
 
-  // format data grafik buat forntend
   const chartData = chartResult.quotes.map((item: any) => ({
     date: item.date,
     price: item.close,
   }));
 
+  // 6. Jahit data menjadi satu JSON yang rapi
   return {
     ticker: cleanTicker,
     name: dbStock ? dbStock.name : quote.longName,
@@ -59,11 +106,14 @@ export const fetchStockDetailService = async (ticker: string) => {
     is_anomaly: dbStock ? dbStock.is_anomaly : false,
     current_price: quote.regularMarketPrice,
     per: quote.trailingPE || null,
+    der: der, // <-- Metrik Baru
+    dividend: dividend, // <-- Metrik Baru
+    cagr: cagr3Y, // <-- Metrik Baru
     day_high: quote.regularMarketDayHigh,
     day_low: quote.regularMarketDayLow,
     chart_1M: chartData,
   };
-};
+};;
 
 // ini buat halaman explore
 export const fetchExploreStocksService = async () => {

@@ -35,8 +35,8 @@ export const processQuestionnaireService = async (
     assignedProfile = "lion";
   }
 
-  // update profile user di db
-  const updatedUser = await updateUserRiskProfile(userId, assignedProfile);
+  // update profile dan skor user di db
+  const updatedUser = await updateUserRiskProfile(userId, assignedProfile, totalScore);
 
   // isiin dompet user 100jt
   const newWallet = await createWallet(userId);

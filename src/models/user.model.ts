@@ -32,14 +32,15 @@ export const findUserById = async (id: string) => {
   return data;
 };
 
-// logic buat isi risk profile user
+// logic buat isi risk profile user beserta skor mentahnya
 export const updateUserRiskProfile = async (
   id: string,
   riskProfile: string,
+  riskScore: number,
 ) => {
   const { data, error } = await supabase
     .from("users")
-    .update({ risk_profile: riskProfile })
+    .update({ risk_profile: riskProfile, risk_score: riskScore })
     .eq("id", id)
     .select()
     .single();
