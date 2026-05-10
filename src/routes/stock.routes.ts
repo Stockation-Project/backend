@@ -5,6 +5,8 @@ import {
   getStockDetailController,
   getExploreStocksController,
   getRecommendedStocksController,
+  syncStocksController,
+  seedStocksController,
 } from "../controllers/stock.controller.js";
 
 const stockRoutes = express.Router();
@@ -14,5 +16,8 @@ stockRoutes.get("/", requireAuth, getStocksController);
 stockRoutes.get("/explore", requireAuth, getExploreStocksController);
 stockRoutes.get("/recommendations", requireAuth, getRecommendedStocksController);
 stockRoutes.get("/detail/:ticker", requireAuth, getStockDetailController);
+stockRoutes.post("/sync-metadata", syncStocksController);
+// Pastikan kamu mengimpor seedStocksController dari stock.controller.js
+stockRoutes.post("/seed-idx80", seedStocksController);
 
 export default stockRoutes;
