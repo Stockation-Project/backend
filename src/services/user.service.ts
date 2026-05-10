@@ -124,6 +124,8 @@ export const getDashboardSummaryService = async (userId: string) => {
         return {
           id: p.id,
           name: p.name,
+          cash_balance: Number(p.cash_balance), // <--- TAMBAHKAN INI
+          invested_balance: Number(p.invested_balance),
           total_value: totalValue,
         };
       })
