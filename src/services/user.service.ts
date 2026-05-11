@@ -5,6 +5,7 @@ import {
   UserInsert,
 } from "../models/user.model.js";
 import { fetchRecommendedStocksService } from "./stock.service.js";
+import { enrichWithRealtimeQuotes } from "../utils/stock.utils.js";
 
 // Ini data payload register
 export interface RegisterPayload {
@@ -108,25 +109,66 @@ export const getDashboardSummaryService = async (userId: string) => {
     .single();
   if (walletError) throw new Error("Gagal mengambil data dompet.");
 
-  // 3. Ambil Daftar Portofolio
+  // 3. Ambil Daftar Portofolio (dengan holdings)
   const { data: portfolios, error: portoError } = await supabase
     .from("portfolios")
-    .select("id, name, cash_balance, invested_balance")
+    .select(`
+      id, name, cash_balance, invested_balance,
+      portfolio_holdings ( ticker, total_shares, avg_buy_price )
+    `)
     .eq("user_id", userId);
   if (portoError) throw new Error("Gagal mengambil data portofolio.");
 
-  // 4. Hitung Ringkasan Alokasi
+  // 4. Ambil Harga Live Semua Kepemilikan (Untuk Kalkulasi Profit)
+  const uniqueTickers = new Set<string>();
+  if (portfolios) {
+    portfolios.forEach((p: any) => {
+      p.portfolio_holdings?.forEach((h: any) => uniqueTickers.add(h.ticker));
+    });
+  }
+  const tickerArray = Array.from(uniqueTickers).map(t => ({ ticker: t }));
+  const liveQuotes = await enrichWithRealtimeQuotes(tickerArray);
+  const quotesMap = new Map();
+  liveQuotes.forEach(q => quotesMap.set(q.ticker, q.current_price));
+
+  // 5. Hitung Ringkasan Alokasi & Profit/Loss
   let totalAllocated = 0;
+
   const portfolioSummary = portfolios
-    ? portfolios.map((p) => {
+    ? portfolios.map((p: any) => {
         const totalValue = Number(p.cash_balance) + Number(p.invested_balance);
         totalAllocated += totalValue;
+        
+        // Kalkulasi allocations & profit
+        const holdings = p.portfolio_holdings || [];
+        const investedBal = Number(p.invested_balance);
+        let currentInvestedValue = 0;
+        
+        const allocations = holdings.map((h: any) => {
+          const cost = h.total_shares * h.avg_buy_price;
+          const percentage = investedBal > 0 ? (cost / investedBal) * 100 : 0;
+          
+          const currentPrice = quotesMap.get(h.ticker) || h.avg_buy_price;
+          currentInvestedValue += h.total_shares * currentPrice;
+
+          return {
+            ticker: h.ticker,
+            percentage: Number(percentage.toFixed(1)),
+          };
+        });
+
+        const profitAmount = currentInvestedValue - investedBal;
+        const profitPercentage = investedBal > 0 ? (profitAmount / investedBal) * 100 : 0;
+
         return {
           id: p.id,
           name: p.name,
-          cash_balance: Number(p.cash_balance), // <--- TAMBAHKAN INI
-          invested_balance: Number(p.invested_balance),
+          cash_balance: Number(p.cash_balance),
+          invested_balance: investedBal,
           total_value: totalValue,
+          allocations: allocations,
+          profitAmount: profitAmount,
+          profitPercentage: Number(profitPercentage.toFixed(2))
         };
       })
     : [];
