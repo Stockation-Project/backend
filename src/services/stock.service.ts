@@ -13,6 +13,7 @@ import {
   calculateCAGR3Y,
   fetchAndMapAIAnomalies,
 } from "../utils/stock.utils.js";
+import { getSmartTTL, getCache, setCache } from "../utils/redis.util.js";
 
 // Konfigurasi instance yahooFinance untuk keperluan di dalam service ini
 const yahooFinance = new YahooFinance({
@@ -20,14 +21,31 @@ const yahooFinance = new YahooFinance({
 });
 
 export const fetchAllStocksService = async () => {
+  const cacheKey = "stocks:all";
+  const cachedData = await getCache(cacheKey);
+  if (cachedData) {
+    console.log(`🚀 Cache Hit: [${cacheKey}]`);
+    return cachedData;
+  }
+
   const stocks = await getAllStocks();
   if (!stocks || stocks.length === 0)
     throw new Error("Data saham tidak ditemukan atau masih kosong.");
+    
+  await setCache(cacheKey, getSmartTTL(), stocks);
   return stocks;
 };
 
 export const fetchStockDetailService = async (ticker: string) => {
   const cleanTicker = ticker.toUpperCase().replace(".JK", "");
+  
+  const cacheKey = `stock:detail:${cleanTicker}`;
+  const cachedData = await getCache(cacheKey);
+  if (cachedData) {
+    console.log(`🚀 Cache Hit: [${cacheKey}]`);
+    return cachedData;
+  }
+
   const yahooTicker = `${cleanTicker}.JK`;
 
   const dbStock: any = await getStockDetailFromDB(cleanTicker);
@@ -73,7 +91,7 @@ export const fetchStockDetailService = async (ticker: string) => {
     await fetchAndMapAIAnomalies(cleanTicker, companyName);
 
   // 5. Return JSON Rapi
-  return {
+  const result = {
     ticker: cleanTicker,
     name: companyName,
     risk_level: dbStock ? dbStock.risk_level : "Unknown",
@@ -92,9 +110,19 @@ export const fetchStockDetailService = async (ticker: string) => {
     about_company:
       dbStock?.description || "Deskripsi perusahaan belum tersedia.",
   };
+
+  await setCache(cacheKey, getSmartTTL(), result);
+  return result;
 };
 
 export const fetchExploreStocksService = async () => {
+  const cacheKey = "stocks:explore";
+  const cachedData = await getCache(cacheKey);
+  if (cachedData) {
+    console.log(`🚀 Cache Hit: [${cacheKey}]`);
+    return cachedData;
+  }
+
   const dbStocks = await getAllStocks();
   if (!dbStocks || dbStocks.length === 0)
     return { gainers: [], losers: [], all_stocks: [] };
@@ -111,10 +139,19 @@ export const fetchExploreStocksService = async () => {
     .sort((a, b) => a.change_percent - b.change_percent)
     .slice(0, 5);
 
-  return { gainers, losers, all_stocks: mergedData };
+  const result = { gainers, losers, all_stocks: mergedData };
+  await setCache(cacheKey, getSmartTTL(), result);
+  return result;
 };
 
 export const fetchRecommendedStocksService = async (userId: string) => {
+  const cacheKey = `stocks:recommendations:${userId}`;
+  const cachedData = await getCache(cacheKey);
+  if (cachedData) {
+    console.log(`🚀 Cache Hit: [${cacheKey}]`);
+    return cachedData;
+  }
+
   const userPersona = await getUserRiskProfile(userId);
   const riskMapping: Record<string, string> = {
     lion: "High",
@@ -131,11 +168,14 @@ export const fetchRecommendedStocksService = async (userId: string) => {
   // Panggil dari Util
   const recommendations = await enrichWithRealtimeQuotes(recommendedDbStocks);
 
-  return {
+  const result = {
     user_risk_profile: userPersona,
     mapped_risk_level: targetRiskLevel,
     recommendations,
   };
+
+  await setCache(cacheKey, getSmartTTL(), result);
+  return result;
 };
 
 export const syncStocksMetadataService = async () => {

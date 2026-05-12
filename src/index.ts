@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import * as dotenv from "dotenv";
+import { connectRedis } from "./config/redis.js";
 import userRoutes from "./routes/user.routes.js";
 import questionnaireRouter from "./routes/questionnaire.routes.js";
 import portfolioRouter from "./routes/portfolio.routes.js";
@@ -38,6 +39,7 @@ app.get("/", (req, res) => {
   res.json({ message: "Server Stockation API berjalan dengan baik!" });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
+  await connectRedis();
   console.log(`Server berjalan di http://localhost:${PORT}`);
 });
