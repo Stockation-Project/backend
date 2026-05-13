@@ -13,7 +13,7 @@ import walletRouter from "./routes/wallet.routes.js";
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 app.use(cors());
 app.use(express.json());
@@ -39,7 +39,7 @@ app.get("/", (req, res) => {
   res.json({ message: "Server Stockation API berjalan dengan baik!" });
 });
 
-app.listen(PORT, async () => {
+app.listen(PORT, '0.0.0.0', async () => {
   await connectRedis();
   console.log(`Server berjalan di http://localhost:${PORT}`);
 });
