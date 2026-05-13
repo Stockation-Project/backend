@@ -15,7 +15,16 @@ dotenv.config();
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "https://stockation-app.vercel.app",
+      "https://frontend-cbsx.vercel.app", // Tambahkan ini juga
+      "http://localhost:5173",
+    ],
+    credentials: true,
+  }),
+);
 app.use(express.json());
 
 // buat user
