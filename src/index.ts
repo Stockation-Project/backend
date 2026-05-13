@@ -41,5 +41,8 @@ app.get("/", (req, res) => {
 
 app.listen(PORT, '0.0.0.0', async () => {
   await connectRedis();
-  console.log(`Server berjalan di http://localhost:${PORT}`);
+  console.log(
+    `🚀 [VERSI TERBARU] Stockation Backend Engine Aktif di Port: ${PORT}`,
+  );
+  console.log(`📡 Mendengarkan di 0.0.0.0 (Akses Publik Tersedia)`);
 });
