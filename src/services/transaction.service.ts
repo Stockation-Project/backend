@@ -1,3 +1,4 @@
+import supabase from "../config/supabase.js";
 import {
   getPortfolioHolding,
   upsertPortfolioHolding,
@@ -80,6 +81,22 @@ export const buyStockService = async (
     newInvested,
   );
 
+  const { error: transactionError } = await supabase
+    .from("transactions")
+    .insert({
+      user_id: userId,
+      portfolio_id: portfolio_id,
+      ticker: ticker,
+      type: "BUY",
+      shares: sharesToBuy,
+      price: current_price,
+      total_amount: totalCost,
+    });
+
+  if (transactionError) {
+    throw new Error("Gagal mencatat riwayat transaksi");
+  }
+
   return {
     transaction_detail: {
       action: "BUY",
@@ -88,7 +105,7 @@ export const buyStockService = async (
       price_per_share: current_price,
       total_cost: totalCost,
     },
-    updated_potfolio: updatePortfolio,
+    updated_portfolio: updatePortfolio,
     holding: holding,
   };
 };
@@ -159,6 +176,22 @@ export const sellStockService = async (
     newInvested,
   );
 
+  const { error: transactionError } = await supabase
+    .from("transactions")
+    .insert({
+      user_id: userId,
+      portfolio_id: portfolio_id,
+      ticker: ticker,
+      type: "SELL",
+      shares: sharesToSell,
+      price: current_price,
+      total_amount: totalRevenue,
+    });
+
+  if (transactionError) {
+    throw new Error("Gagal mencatat riwayat transaksi");
+  }
+
   return {
     transaction_detail: {
       action: "SELL",
@@ -171,4 +204,21 @@ export const sellStockService = async (
     updated_portfolio: updatedPortfolio,
     holding: updatedHolding ? updatedHolding : "Saham habis terjual",
   };
+};
+
+// src/services/transaction.service.ts
+
+export const getStockTransactionsService = async (portfolioId: string, ticker: string) => {
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("*")
+    .eq("portfolio_id", portfolioId)
+    .eq("ticker", ticker)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error("Gagal mengambil riwayat transaksi: " + error.message);
+  }
+
+  return data;
 };
