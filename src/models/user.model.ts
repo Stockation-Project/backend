@@ -7,6 +7,7 @@ export interface UserInsert {
   first_name: string;
   last_name: string;
   email: string;
+  avatar_url?: string | null;
 }
 
 // Logic buat ngisi data ke tabel di supabase
@@ -41,6 +42,19 @@ export const updateUserRiskProfile = async (
   const { data, error } = await supabase
     .from("users")
     .update({ risk_profile: riskProfile, risk_score: riskScore })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+// logic buat update data user (profil)
+export const updateUserById = async (id: string, updates: any) => {
+  const { data, error } = await supabase
+    .from("users")
+    .update(updates)
     .eq("id", id)
     .select()
     .single();
