@@ -8,6 +8,7 @@ import {
   syncStocksMetadataService,
   seedIdx80Service,
 } from "../services/stock.service.js";
+import { checkIsOnWatchlist } from "../models/watchlist.model.js";
 
 export const syncStocksController = async (req: Request, res: Response) => {
   try {
@@ -62,12 +63,18 @@ export const getStockDetailController = async (
 ): Promise<void> => {
   try {
     const ticker = req.params.ticker as string;
+    const userId = req.user.id;
+    
     const detail = await fetchStockDetailService(ticker);
+    const isOnWatchlist = await checkIsOnWatchlist(userId, ticker);
 
     res.status(200).json({
       success: true,
       message: `Berhasil mengambil detail saham ${ticker}`,
-      data: detail,
+      data: {
+        ...detail,
+        is_watchlist: isOnWatchlist
+      },
     });
   } catch (error: any) {
     res.status(404).json({ success: false, message: error.message });

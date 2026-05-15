@@ -119,7 +119,7 @@ export const fetchExploreStocksService = async () => {
   const cacheKey = "stocks:explore";
   const cachedData = await getCache(cacheKey);
   if (cachedData) {
-    console.log(`🚀 Cache Hit: [${cacheKey}]`);
+    console.log(`Cache Hit: [${cacheKey}]`);
     return cachedData;
   }
 
