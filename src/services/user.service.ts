@@ -2,6 +2,7 @@ import supabase from "../config/supabase.js";
 import {
   createUserInDB,
   findUserById,
+  updateUserById,
   UserInsert,
 } from "../models/user.model.js";
 import { fetchRecommendedStocksService } from "./stock.service.js";
@@ -205,4 +206,12 @@ export const getDashboardSummaryService = async (userId: string) => {
     portfolios: portfolioSummary,
     recommended_stocks: recommendationsData.recommendations,
   };
+};
+
+export const getUserProfileService = async (userId: string) => {
+  return await findUserById(userId);
+};
+
+export const updateUserProfileService = async (userId: string, updates: any) => {
+  return await updateUserById(userId, updates);
 };

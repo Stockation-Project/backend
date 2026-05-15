@@ -1,9 +1,9 @@
 import { AuthRequest } from "../middleware/auth.middleware.js";
 import { Response } from "express";
 import {
-  CreatePortfolioPayload,
   createPortfolioService,
   fetchPortfolioDetailService,
+  fetchAllUserPortfoliosService,
 } from "../services/portfolio.service.js";
 
 export const createPortfolioController = async (
@@ -49,5 +49,22 @@ export const getPortfolioDetailController = async (
     });
   } catch (error: any) {
     res.status(404).json({ success: false, message: error.message });
+  }
+};
+
+export const getUserPortfoliosController = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const userId = req.user.id as string;
+    const portfolios = await fetchAllUserPortfoliosService(userId);
+
+    res.status(200).json({
+      success: true,
+      data: portfolios,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };

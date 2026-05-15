@@ -57,3 +57,18 @@ export const fetchPortfolioDetailService = async (
 
   return portfolio;
 };
+
+export const fetchAllUserPortfoliosService = async (userId: string) => {
+  const { data, error } = await (await import("../config/supabase.js")).default
+    .from("portfolios")
+    .select(`
+      *,
+      portfolio_holdings (
+        id, ticker, total_shares, avg_buy_price, updated_at
+      )
+    `)
+    .eq("user_id", userId);
+
+  if (error) throw error;
+  return data;
+};

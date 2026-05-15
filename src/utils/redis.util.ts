@@ -36,3 +36,10 @@ export const setCache = async (key: string, ttl: number, data: any) => {
     await redisClient.setEx(key, ttl, JSON.stringify(data));
   } catch (error) {}
 };
+
+export const delCache = async (key: string) => {
+  if (!isRedisConnected) return;
+  try {
+    await redisClient.del(key);
+  } catch (error) {}
+};
