@@ -1,11 +1,20 @@
-// Di dalam src/routes/wallet.routes.ts
 import { Router } from "express";
 import { requireAuth } from "../middleware/auth.middleware.js";
-import { topUpWallet } from "../controllers/wallet.controller.js";
+import {
+  topUpWallet,
+  allocateFunds,
+  withdrawFunds,
+  getUserWallet,
+} from "../controllers/wallet.controller.js";
+import { getActivityHistory } from "../controllers/activity.controller.js";
 
 const walletRouter = Router();
 
-// Endpoint ini akan menjadi /api/wallets/topup nantinya
+// Endpoints: /api/wallets/...
+walletRouter.get("/", requireAuth, getUserWallet);
 walletRouter.post("/topup", requireAuth, topUpWallet);
+walletRouter.post("/allocate", requireAuth, allocateFunds);
+walletRouter.post("/withdraw", requireAuth, withdrawFunds);
+walletRouter.get("/history", requireAuth, getActivityHistory);
 
 export default walletRouter;
