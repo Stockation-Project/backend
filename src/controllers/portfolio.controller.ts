@@ -4,6 +4,7 @@ import {
   createPortfolioService,
   fetchPortfolioDetailService,
   fetchAllUserPortfoliosService,
+  CreatePortfolioPayload,
 } from "../services/portfolio.service.js";
 
 export const createPortfolioController = async (
