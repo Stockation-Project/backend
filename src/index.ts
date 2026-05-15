@@ -8,14 +8,24 @@ import portfolioRouter from "./routes/portfolio.routes.js";
 import stockRoutes from "./routes/stock.routes.js";
 import transactionRoutes from "./routes/transaction.routes.js";
 import walletRouter from "./routes/wallet.routes.js";
+import exploreRoutes from "./routes/explore.routes.js";
 
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "https://stockation-app.vercel.app",
+      "https://frontend-cbsx.vercel.app", // Tambahkan ini juga
+      "http://localhost:5173",
+    ],
+    credentials: true,
+  }),
+);
 app.use(express.json());
 
 // buat user
@@ -34,12 +44,16 @@ app.use('/api/stocks', stockRoutes)
 app.use('/api/transactions', transactionRoutes)
 
 app.use("/api/wallets", walletRouter);
+app.use("/api/explore", exploreRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "Server Stockation API berjalan dengan baik!" });
 });
 
-app.listen(PORT, async () => {
+app.listen(PORT, '0.0.0.0', async () => {
   await connectRedis();
-  console.log(`Server berjalan di http://localhost:${PORT}`);
+  console.log(
+    `🚀 [VERSI TERBARU] Stockation Backend Engine Aktif di Port: ${PORT}`,
+  );
+  console.log(`📡 Mendengarkan di 0.0.0.0 (Akses Publik Tersedia)`);
 });

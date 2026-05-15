@@ -4,7 +4,9 @@ import {
   loginUserService,
   RegisterPayload,
   LoginPayload,
-  getDashboardSummaryService
+  getDashboardSummaryService,
+  getUserProfileService,
+  updateUserProfileService
 } from "../services/user.service.js";
 import { AuthRequest } from "../middleware/auth.middleware.js";
 
@@ -61,6 +63,43 @@ export const getDashboardController = async (
       success: true,
       message: "Berhasil memuat data dashboard utama",
       data: dashboardData,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getUserProfileController = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const userId = req.user.id as string;
+    const user = await getUserProfileService(userId);
+
+    res.status(200).json({
+      success: true,
+      message: "Berhasil mengambil data profil",
+      data: user,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const updateUserProfileController = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const userId = req.user.id as string;
+    const updates = req.body;
+    const user = await updateUserProfileService(userId, updates);
+
+    res.status(200).json({
+      success: true,
+      message: "Berhasil memperbarui profil",
+      data: user,
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });

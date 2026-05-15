@@ -4,7 +4,8 @@ import {
   BuyStockPayload,
   buyStockService,
   sellStockService,
-  SellStockPayload
+  SellStockPayload,
+  getStockTransactionsService
 } from "../services/transaction.service.js";
 
 export const buyStockController = async (
@@ -39,6 +40,28 @@ export const sellStockController = async (
     res.status(200).json({
       success: true,
       message: `Berhasil menjual saham ${req.body.ticker}!`,
+      data: result,
+    });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+// src/controllers/transaction.controller.ts
+
+export const getStockTransactionsController = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    // Ambil dari params URL: /api/transactions/portfolio/:portfolioId/stock/:ticker
+    const { portfolioId, ticker } = req.params;
+
+    const result = await getStockTransactionsService(portfolioId as string, ticker as string);
+
+    res.status(200).json({
+      success: true,
+      message: `Riwayat transaksi ${ticker} berhasil diambil`,
       data: result,
     });
   } catch (error: any) {

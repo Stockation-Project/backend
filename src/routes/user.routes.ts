@@ -1,6 +1,8 @@
 import express from "express";
 import {
   getDashboardController,
+  getUserProfileController,
+  updateUserProfileController,
   loginController,
   registerController,
 } from "../controllers/user.controller.js";
@@ -13,13 +15,8 @@ userRoutes.post("/register", registerController);
 userRoutes.post("/login", loginController);
 
 // route jwt token
-userRoutes.get("/profile", requireAuth, (req: AuthRequest, res) => {
-  res.status(500).json({
-    success: true,
-    message: "Selamat datang di area privat",
-    user_token: req.user,
-  });
-});
+userRoutes.get("/profile", requireAuth, getUserProfileController);
+userRoutes.put("/profile", requireAuth, updateUserProfileController);
 
 userRoutes.get("/dashboard", requireAuth, getDashboardController);
 
