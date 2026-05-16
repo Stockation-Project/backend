@@ -185,6 +185,7 @@ export const getDashboardSummaryService = async (userId: string) => {
 
   // 5. Ambil Rekomendasi Saham (Menggunakan service yang kita buat sebelumnya!)
   const recommendationsData = await fetchRecommendedStocksService(userId);
+  console.log(`DEBUG: User ${userId} (${user.risk_profile}) target ${recommendationsData.mapped_risk_level} got ${recommendationsData.recommendations.length} stocks`);
 
   // 6. Jahit Semua Data
   const personaLokal = user?.risk_profile?.toLowerCase() || "capybara";

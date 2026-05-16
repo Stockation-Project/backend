@@ -7,6 +7,7 @@ import {
   getRecommendedStocksController,
   syncStocksController,
   seedStocksController,
+  syncClusteringController,
 } from "../controllers/stock.controller.js";
 
 const stockRoutes = express.Router();
@@ -18,5 +19,6 @@ stockRoutes.get("/recommendations", requireAuth, getRecommendedStocksController)
 stockRoutes.get("/detail/:ticker", requireAuth, getStockDetailController);
 stockRoutes.post("/sync-metadata", syncStocksController);
 stockRoutes.post("/seed-idx80", seedStocksController);
+stockRoutes.post("/sync-clustering", syncClusteringController);
 
 export default stockRoutes;

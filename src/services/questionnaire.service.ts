@@ -1,6 +1,8 @@
 import supabase from "../config/supabase.js";
 import { updateUserRiskProfile } from "../models/user.model.js";
 import { findOrCreateWallet } from "../models/wallet.model.js";
+import { delCache } from "../utils/redis.util.js";
+
 
 export interface QuestionnairePayload {
   answers: number[];
@@ -45,7 +47,11 @@ export const processQuestionnaireService = async (
   // isiin dompet user 100jt (safe: skip jika wallet sudah ada — cegah error 500 saat retake)
   const newWallet = await findOrCreateWallet(userId);
 
+  // Hapus cache rekomendasi lama agar langsung update sesuai profil baru
+  await delCache(`stocks:recommendations:${userId}`);
+
   return {
+
     user: updatedUser,
     newWallet: newWallet,
     score: totalScore,

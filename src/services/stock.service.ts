@@ -13,7 +13,10 @@ import {
   calculateCAGR3Y,
   fetchAndMapAIAnomalies,
 } from "../utils/stock.utils.js";
-import { getSmartTTL, getCache, setCache } from "../utils/redis.util.js";
+import { getSmartTTL, getCache, setCache, redisClient } from "../utils/redis.util.js";
+import axios from "axios";
+
+const FASTAPI_URL = process.env.FASTAPI_URL || "http://127.0.0.1:8000";
 
 // Konfigurasi instance yahooFinance untuk keperluan di dalam service ini
 const yahooFinance = new YahooFinance({
@@ -148,25 +151,39 @@ export const fetchRecommendedStocksService = async (userId: string) => {
   const cacheKey = `stocks:recommendations:${userId}`;
   const cachedData = await getCache(cacheKey);
   if (cachedData) {
-    console.log(`🚀 Cache Hit: [${cacheKey}]`);
+    console.log(`Cache Hit: [${cacheKey}]`);
     return cachedData;
   }
 
   const userPersona = await getUserRiskProfile(userId);
+  
+  // Mapping Profile User (5 jenis) ke Cluster ML (3 jenis: Low, Medium, High)
+  // Sesuai instruksi User:
+  // kura kura & kuda nil -> Low
+  // capybara -> Medium
+  // serigala & singa -> High
   const riskMapping: Record<string, string> = {
-    lion: "High",
-    eagle: "High",
-    wolf: "Medium",
-    bear: "Medium",
-    hippo: "Low",
-    turtle: "Low",
+    lion: "High",       // Singa (Very High)
+    wolf: "High",       // Serigala (High)
+    capybara: "Medium", // Capybara (Medium)
+    hippo: "Low",       // Kuda Nil (Low)
+    turtle: "Low",      // Kura Kura (Very Low)
+    eagle: "High",      // Fallback untuk profil lama jika ada
   };
-  const targetRiskLevel = riskMapping[userPersona.toLowerCase()] || "Low";
+  const targetRiskLevel = riskMapping[userPersona.toLowerCase()] || "Medium";
 
   const recommendedDbStocks = await getStocksByRiskLevel(targetRiskLevel);
 
+  // Jika data masih kosong (mungkin belum di-sync), ambil 5 saham random sebagai fallback aman
+  let finalStocks = recommendedDbStocks;
+  if (!finalStocks || finalStocks.length === 0) {
+    console.log(`⚠️ Risk level ${targetRiskLevel} empty in DB. Using fallback random stocks.`);
+    const allStocks = await getAllStocks();
+    finalStocks = allStocks.slice(0, 5);
+  }
+
   // Panggil dari Util
-  const recommendations = await enrichWithRealtimeQuotes(recommendedDbStocks);
+  const recommendations = await enrichWithRealtimeQuotes(finalStocks);
 
   const result = {
     user_risk_profile: userPersona,
@@ -313,4 +330,57 @@ export const seedIdx80Service = async () => {
 
   const syncReport = await syncStocksMetadataService();
   return { inserted_count: idx80Tickers.length, sync_report: syncReport };
+};
+
+export const syncClusteringRiskService = async () => {
+  try {
+    console.log("⏳ Memulai sinkronisasi clustering dari ML Service (Mungkin butuh waktu 1-2 menit)...");
+    
+    // 1. Panggil API ML untuk mendapatkan mapping terbaru
+    // Ditambahkan timeout 120 detik karena pemrosesan embedding cukup lama
+    const mlResponse = await axios.get(`${FASTAPI_URL}/api/ai/clustering`, {
+      timeout: 120000 
+    });
+    
+    if (!mlResponse.data || !mlResponse.data.success) {
+      throw new Error("Gagal mendapatkan data clustering dari ML Service");
+    }
+
+    const mapping = mlResponse.data.data; // { "BBCA": "Low", "GOTO": "High", ... }
+    const tickers = Object.keys(mapping);
+
+    const results = { success: 0, failed: 0, updated: [] as string[] };
+
+    // 2. Update satu per satu ke database Supabase
+    // Menggunakan loop karena risk_level tiap saham berbeda
+    for (const ticker of tickers) {
+      const riskLevel = mapping[ticker];
+      const cleanTicker = ticker.replace(".JK", ""); // Sesuaikan format dengan DB
+      
+      const { error } = await supabase
+        .from("stocks")
+        .update({ risk_level: riskLevel })
+        .eq("ticker", cleanTicker);
+
+
+      if (error) {
+        results.failed++;
+        console.error(`Gagal update ticker ${ticker}:`, error.message);
+      } else {
+        results.success++;
+        results.updated.push(ticker);
+      }
+    }
+
+
+    // 3. Invalidate Cache agar user langsung melihat perubahan
+    console.log("🧹 Mengosongkan seluruh cache Redis...");
+    await redisClient.flushAll();
+
+
+    return results;
+  } catch (error: any) {
+    console.error("Error in syncClusteringRiskService:", error.message);
+    throw error;
+  }
 };
