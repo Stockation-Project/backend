@@ -50,10 +50,14 @@ app.get("/", (req, res) => {
   res.json({ message: "Server Stockation API berjalan dengan baik!" });
 });
 
-app.listen(PORT, '0.0.0.0', async () => {
-  await connectRedis();
-  console.log(
-    `🚀 [VERSI TERBARU] Stockation Backend Engine Aktif di Port: ${PORT}`,
-  );
-  console.log(`📡 Mendengarkan di 0.0.0.0 (Akses Publik Tersedia)`);
-});
+export default app;
+
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, '0.0.0.0', async () => {
+    await connectRedis();
+    console.log(
+      `🚀 [VERSI TERBARU] Stockation Backend Engine Aktif di Port: ${PORT}`,
+    );
+    console.log(`📡 Mendengarkan di 0.0.0.0 (Akses Publik Tersedia)`);
+  });
+}

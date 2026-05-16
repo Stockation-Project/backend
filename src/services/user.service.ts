@@ -175,7 +175,7 @@ export const getDashboardSummaryService = async (userId: string) => {
       main_wallet_balance: mainBalance,
       total_assets: totalAssets,
       total_allocated_to_portfolio: totalAllocated,
-      allocation_percentage: `${allocationPercentage}%`,
+      allocation_percentage: allocationPercentage,
     },
     portfolios: portfolioSummary,
     recommended_stocks: recommendationsData.recommendations,
