@@ -1,0 +1,17 @@
+import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
+dotenv.config();
+
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+
+async function checkUser() {
+    // Get first user for testing
+    const { data, error } = await supabase.from('users').select('id, email, risk_profile, risk_score').limit(1);
+    if (error) {
+        console.error(error);
+        return;
+    }
+    console.log("User Data:", data);
+}
+
+checkUser();

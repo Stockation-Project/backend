@@ -1,5 +1,8 @@
 import redisClient, { isRedisConnected } from "../config/redis.js";
 
+export { redisClient };
+
+
 export const getSmartTTL = (): number => {
   const now = new Date();
   

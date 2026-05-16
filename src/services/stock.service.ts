@@ -4,27 +4,23 @@ import {
   getUserRiskProfile,
   getStocksByRiskLevel,
 } from "../models/stock.model.js";
-import YahooFinance from "yahoo-finance2";
+import yahooFinance from "../config/yahoo-finance.js";
+import aiClient from "../config/ai-client.js";
 import supabase from "../config/supabase.js";
-
-// Impor fungsi pembantu dari folder utils
+import { IDX80_STOCKS } from "../constants/idx80.js";
+import { USER_TO_ML_RISK_MAPPING } from "../constants/risk.js";
 import {
   enrichWithRealtimeQuotes,
   calculateCAGR3Y,
   fetchAndMapAIAnomalies,
 } from "../utils/stock.utils.js";
-import { getSmartTTL, getCache, setCache } from "../utils/redis.util.js";
-
-// Konfigurasi instance yahooFinance untuk keperluan di dalam service ini
-const yahooFinance = new YahooFinance({
-  suppressNotices: ["yahooSurvey", "ripHistorical"],
-});
+import { getSmartTTL, getCache, setCache, redisClient } from "../utils/redis.util.js";
 
 export const fetchAllStocksService = async () => {
   const cacheKey = "stocks:all";
   const cachedData = await getCache(cacheKey);
   if (cachedData) {
-    console.log(`🚀 Cache Hit: [${cacheKey}]`);
+    console.log(`Cache Hit: [${cacheKey}]`);
     return cachedData;
   }
 
@@ -42,7 +38,7 @@ export const fetchStockDetailService = async (ticker: string) => {
   const cacheKey = `stock:detail:${cleanTicker}`;
   const cachedData = await getCache(cacheKey);
   if (cachedData) {
-    console.log(`🚀 Cache Hit: [${cacheKey}]`);
+    console.log(`Cache Hit: [${cacheKey}]`);
     return cachedData;
   }
 
@@ -148,25 +144,26 @@ export const fetchRecommendedStocksService = async (userId: string) => {
   const cacheKey = `stocks:recommendations:${userId}`;
   const cachedData = await getCache(cacheKey);
   if (cachedData) {
-    console.log(`🚀 Cache Hit: [${cacheKey}]`);
+    console.log(`Cache Hit: [${cacheKey}]`);
     return cachedData;
   }
 
   const userPersona = await getUserRiskProfile(userId);
-  const riskMapping: Record<string, string> = {
-    lion: "High",
-    eagle: "High",
-    wolf: "Medium",
-    bear: "Medium",
-    hippo: "Low",
-    turtle: "Low",
-  };
-  const targetRiskLevel = riskMapping[userPersona.toLowerCase()] || "Low";
+  
+  const targetRiskLevel = USER_TO_ML_RISK_MAPPING[userPersona.toLowerCase()] || "Medium";
 
   const recommendedDbStocks = await getStocksByRiskLevel(targetRiskLevel);
 
+  // Jika data masih kosong (mungkin belum di-sync), ambil 5 saham random sebagai fallback aman
+  let finalStocks = recommendedDbStocks;
+  if (!finalStocks || finalStocks.length === 0) {
+    console.log(`⚠️ Risk level ${targetRiskLevel} empty in DB. Using fallback random stocks.`);
+    const allStocks = await getAllStocks();
+    finalStocks = allStocks.slice(0, 5);
+  }
+
   // Panggil dari Util
-  const recommendations = await enrichWithRealtimeQuotes(recommendedDbStocks);
+  const recommendations = await enrichWithRealtimeQuotes(finalStocks);
 
   const result = {
     user_risk_profile: userPersona,
@@ -176,141 +173,4 @@ export const fetchRecommendedStocksService = async (userId: string) => {
 
   await setCache(cacheKey, getSmartTTL(), result);
   return result;
-};
-
-export const syncStocksMetadataService = async () => {
-  const { data: stocks, error } = await supabase
-    .from("stocks")
-    .select("ticker");
-  if (error || !stocks)
-    throw new Error("Gagal mengambil daftar ticker dari DB");
-
-  const results = { success: 0, failed: 0, details: [] as string[] };
-
-  for (const stock of stocks) {
-    try {
-      const summary: any = await yahooFinance.quoteSummary(
-        `${stock.ticker}.JK`,
-        { modules: ["assetProfile"] },
-      );
-      await supabase
-        .from("stocks")
-        .update({
-          sector: summary.assetProfile?.sector || "Lainnya",
-          description:
-            summary.assetProfile?.longBusinessSummary ||
-            "Deskripsi tidak tersedia.",
-        })
-        .eq("ticker", stock.ticker);
-
-      results.success++;
-    } catch (err) {
-      results.failed++;
-      results.details.push(stock.ticker);
-    }
-  }
-  return results;
-};
-
-export const seedIdx80Service = async () => {
-  // Masukkan kembali array lengkap 80 sahammu di sini
-  const idx80Tickers = [
-    { ticker: "BBCA", name: "Bank Central Asia Tbk." },
-    { ticker: "BBRI", name: "Bank Rakyat Indonesia (Persero) Tbk." },
-    { ticker: "BMRI", name: "Bank Mandiri (Persero) Tbk." },
-    { ticker: "BBNI", name: "Bank Negara Indonesia (Persero) Tbk." },
-    { ticker: "TLKM", name: "Telkom Indonesia (Persero) Tbk." },
-    { ticker: "ASII", name: "Astra International Tbk." },
-    { ticker: "AMMN", name: "Amman Mineral Internasional Tbk." },
-    { ticker: "BREN", name: "Barito Renewables Energy Tbk." },
-    { ticker: "UNTR", name: "United Tractors Tbk." },
-    { ticker: "ICBP", name: "Indofood CBP Sukses Makmur Tbk." },
-    { ticker: "INDF", name: "Indofood Sukses Makmur Tbk." },
-    { ticker: "KLBF", name: "Kalbe Farma Tbk." },
-    { ticker: "AMRT", name: "Sumber Alfaria Trijaya Tbk." },
-    { ticker: "GOTO", name: "GoTo Gojek Tokopedia Tbk." },
-    { ticker: "ADRO", name: "Adaro Energy Indonesia Tbk." },
-    { ticker: "PTBA", name: "Bukit Asam Tbk." },
-    { ticker: "ITMG", name: "Indo Tambangraya Megah Tbk." },
-    { ticker: "PGAS", name: "Perusahaan Gas Negara Tbk." },
-    { ticker: "UNVR", name: "Unilever Indonesia Tbk." },
-    { ticker: "CPIN", name: "Charoen Pokphand Indonesia Tbk." },
-    { ticker: "MYOR", name: "Mayora Indah Tbk." },
-    { ticker: "TPIA", name: "Chandra Asri Pacific Tbk." },
-    { ticker: "INKP", name: "Indah Kiat Pulp & Paper Tbk." },
-    { ticker: "BRPT", name: "Barito Pacific Tbk." },
-    { ticker: "MDKA", name: "Merdeka Copper Gold Tbk." },
-    { ticker: "INCO", name: "Vale Indonesia Tbk." },
-    { ticker: "ANTM", name: "Aneka Tambang Tbk." },
-    { ticker: "MEDC", name: "Medco Energi Internasional Tbk." },
-    { ticker: "ARTO", name: "Bank Jago Tbk." },
-    { ticker: "EXCL", name: "XL Axiata Tbk." },
-    { ticker: "ISAT", name: "Indosat Tbk." },
-    { ticker: "TOWR", name: "Sarana Menara Nusantara Tbk." },
-    { ticker: "TBIG", name: "Tower Bersama Infrastructure Tbk." },
-    { ticker: "JPFA", name: "Japfa Comfeed Indonesia Tbk." },
-    { ticker: "SMGR", name: "Semen Indonesia (Persero) Tbk." },
-    { ticker: "INTP", name: "Indocement Tunggal Prakarsa Tbk." },
-    { ticker: "BFIN", name: "BFI Finance Indonesia Tbk." },
-    { ticker: "BRIS", name: "Bank Syariah Indonesia Tbk." },
-    { ticker: "MEGA", name: "Bank Mega Tbk." },
-    { ticker: "BBTN", name: "Bank Tabungan Negara (Persero) Tbk." },
-    { ticker: "NISP", name: "Bank OCBC NISP Tbk." },
-    { ticker: "BDMN", name: "Bank Danamon Indonesia Tbk." },
-    { ticker: "AKRA", name: "AKR Corporindo Tbk." },
-    { ticker: "ERAA", name: "Erajaya Swasembada Tbk." },
-    { ticker: "MAPI", name: "Mitra Adiperkasa Tbk." },
-    { ticker: "SIDO", name: "Industri Jamu dan Farmasi Sido Muncul Tbk." },
-    { ticker: "ACES", name: "Aspirasi Hidup Indonesia Tbk." },
-    { ticker: "SCMA", name: "Surya Citra Media Tbk." },
-    { ticker: "BSDE", name: "Bumi Serpong Damai Tbk." },
-    { ticker: "CTRA", name: "Ciputra Development Tbk." },
-    { ticker: "PWON", name: "Pakuwon Jati Tbk." },
-    { ticker: "SMRA", name: "Summarecon Agung Tbk." },
-    { ticker: "AALI", name: "Astra Agro Lestari Tbk." },
-    { ticker: "LSIP", name: "PP London Sumatra Indonesia Tbk." },
-    { ticker: "TAPG", name: "Triputra Agro Persada Tbk." },
-    { ticker: "DSNG", name: "Dharma Satya Nusantara Tbk." },
-    { ticker: "EMTK", name: "Elang Mahkota Teknologi Tbk." },
-    { ticker: "ESSA", name: "ESSA Industries Indonesia Tbk." },
-    { ticker: "SILO", name: "Siloam International Hospitals Tbk." },
-    { ticker: "MIKA", name: "Mitra Keluarga Karyasehat Tbk." },
-    { ticker: "HEAL", name: "Medikaloka Hermina Tbk." },
-    { ticker: "PRDA", name: "Prodia Widyahusada Tbk." },
-    { ticker: "BUKA", name: "Bukalapak.com Tbk." },
-    { ticker: "GGRM", name: "Gudang Garam Tbk." },
-    { ticker: "MTEL", name: "Dayamitra Telekomunikasi Tbk." },
-    { ticker: "RAJA", name: "Rukun Raharja Tbk." },
-    { ticker: "ENRG", name: "Energi Mega Persada Tbk." },
-    { ticker: "ADMR", name: "Adaro Minerals Indonesia Tbk." },
-    { ticker: "INDY", name: "Indika Energy Tbk." },
-    { ticker: "HRUM", name: "Harum Energy Tbk." },
-    { ticker: "CUAN", name: "Petrindo Semesta Kreasi Tbk." },
-    { ticker: "WIKA", name: "Wijaya Karya (Persero) Tbk." },
-    { ticker: "PTPP", name: "PP (Persero) Tbk." },
-    { ticker: "ADHI", name: "Adhi Karya (Persero) Tbk." },
-    { ticker: "WSKT", name: "Waskita Karya (Persero) Tbk." },
-    { ticker: "WTON", name: "Wijaya Karya Beton Tbk." },
-    { ticker: "SRTG", name: "Saratoga Investama Sedaya Tbk." },
-    { ticker: "BTPS", name: "Bank BTPN Syariah Tbk." },
-    { ticker: "PNBN", name: "Bank Pan Indonesia Tbk." },
-    { ticker: "AVIA", name: "Avia Avian Tbk." },
-  ];
-
-  const formattedData = idx80Tickers.map((stock) => ({
-    ticker: stock.ticker,
-    name: stock.name,
-    risk_level: "Medium",
-    is_anomaly: false,
-    sector: "Menunggu Sinkronisasi...",
-    description: "Menunggu Sinkronisasi...",
-  }));
-
-  const { error } = await supabase
-    .from("stocks")
-    .upsert(formattedData, { onConflict: "ticker" });
-  if (error) throw new Error(`Gagal melakukan seed data: ${error.message}`);
-
-  const syncReport = await syncStocksMetadataService();
-  return { inserted_count: idx80Tickers.length, sync_report: syncReport };
 };

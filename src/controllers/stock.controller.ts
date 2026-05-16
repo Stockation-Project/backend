@@ -5,9 +5,12 @@ import {
   fetchStockDetailService,
   fetchExploreStocksService,
   fetchRecommendedStocksService,
-  syncStocksMetadataService,
-  seedIdx80Service,
 } from "../services/stock.service.js";
+import { 
+  syncStocksMetadataService, 
+  seedIdx80Service 
+} from "../services/maintenance.service.js";
+import { syncClusteringRiskService } from "../services/ai.service.js";
 import { checkIsOnWatchlist } from "../models/watchlist.model.js";
 
 export const syncStocksController = async (req: Request, res: Response) => {
@@ -22,6 +25,20 @@ export const syncStocksController = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+export const syncClusteringController = async (req: Request, res: Response) => {
+  try {
+    const report = await syncClusteringRiskService();
+    res.status(200).json({
+      success: true,
+      message: "Sinkronisasi risk level saham berdasarkan clustering AI selesai!",
+      data: report,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 
 // Pastikan kamu mengimpor seedIdx80Service dari stock.service.js
 export const seedStocksController = async (req: Request, res: Response) => {
