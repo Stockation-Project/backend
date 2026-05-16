@@ -7,6 +7,10 @@ import {
 } from "../models/user.model.js";
 import { fetchRecommendedStocksService } from "./stock.service.js";
 import { enrichWithRealtimeQuotes } from "../utils/stock.utils.js";
+import { 
+  calculatePortfolioMetrics, 
+  calculateAllocationPercentage 
+} from "../utils/calculation.util.js";
 
 // Ini data payload register
 export interface RegisterPayload {
@@ -81,17 +85,7 @@ export const loginUserService = async (body: LoginPayload) => {
   };
 };
 
-// Kamus Penjelasan Persona
-const personaDescriptions: Record<string, string> = {
-  lion: "Seperti Singa yang agresif, kamu sangat berani mengambil risiko tinggi demi imbal hasil maksimal. Fluktuasi tajam adalah taman bermainmu.",
-  wolf: "Seperti Serigala yang taktis, kamu berani bermanuver di pasar dengan perhitungan yang matang untuk mengejar pertumbuhan aset.",
-  capybara:
-    "Seperti Capybara yang santai, kamu menyeimbangkan antara keamanan dan pertumbuhan. Risiko moderat adalah zona nyamanmu.",
-  hippo:
-    "Seperti Kuda Nil yang tenang, kamu lebih suka berdiam di perairan investasi yang aman dan stabil untuk melindungi nilai uangmu.",
-  turtle:
-    "Seperti Kura-kura yang stabil, kamu sangat berhati-hati dan mengutamakan keamanan modal di atas segalanya. Lambat tapi pasti.",
-};
+import { PERSONA_DESCRIPTIONS } from "../constants/personas.js";
 
 export const getDashboardSummaryService = async (userId: string) => {
   // 1. Ambil Profil User (Nama & Persona)
@@ -137,39 +131,21 @@ export const getDashboardSummaryService = async (userId: string) => {
 
   const portfolioSummary = portfolios
     ? portfolios.map((p: any) => {
-        const totalValue = Number(p.cash_balance) + Number(p.invested_balance);
-        totalAllocated += totalValue;
+        const metrics = calculatePortfolioMetrics(
+          p.portfolio_holdings || [],
+          p.invested_balance,
+          p.cash_balance,
+          quotesMap
+        );
         
-        // Kalkulasi allocations & profit
-        const holdings = p.portfolio_holdings || [];
-        const investedBal = Number(p.invested_balance);
-        let currentInvestedValue = 0;
-        
-        const allocations = holdings.map((h: any) => {
-          const cost = h.total_shares * h.avg_buy_price;
-          const percentage = investedBal > 0 ? (cost / investedBal) * 100 : 0;
-          
-          const currentPrice = quotesMap.get(h.ticker) || h.avg_buy_price;
-          currentInvestedValue += h.total_shares * currentPrice;
-
-          return {
-            ticker: h.ticker,
-            percentage: Number(percentage.toFixed(1)),
-          };
-        });
-
-        const profitAmount = currentInvestedValue - investedBal;
-        const profitPercentage = investedBal > 0 ? (profitAmount / investedBal) * 100 : 0;
+        totalAllocated += metrics.total_value;
 
         return {
           id: p.id,
           name: p.name,
           cash_balance: Number(p.cash_balance),
-          invested_balance: investedBal,
-          total_value: totalValue,
-          allocations: allocations,
-          profitAmount: profitAmount,
-          profitPercentage: Number(profitPercentage.toFixed(2))
+          invested_balance: Number(p.invested_balance),
+          ...metrics
         };
       })
     : [];
@@ -177,11 +153,8 @@ export const getDashboardSummaryService = async (userId: string) => {
   const mainBalance = Number(wallet?.balance || 0);
   const totalAssets = mainBalance + totalAllocated;
 
-  // Hitung persentase alokasi (jangan sampai dibagi nol)
-  const allocationPercentage =
-    totalAssets > 0
-      ? ((totalAllocated / totalAssets) * 100).toFixed(1) // Membulatkan 1 angka di belakang koma
-      : 0;
+  // Hitung persentase alokasi menggunakan util
+  const allocationPercentage = calculateAllocationPercentage(totalAllocated, totalAssets);
 
   // 5. Ambil Rekomendasi Saham (Menggunakan service yang kita buat sebelumnya!)
   const recommendationsData = await fetchRecommendedStocksService(userId);
@@ -196,13 +169,13 @@ export const getDashboardSummaryService = async (userId: string) => {
       risk_profile: user.risk_profile,
       risk_score: user.risk_score ?? 0,
       profile_description:
-        personaDescriptions[personaLokal] || personaDescriptions["capybara"],
+        PERSONA_DESCRIPTIONS[personaLokal] || PERSONA_DESCRIPTIONS["capybara"],
     },
     wallet_summary: {
       main_wallet_balance: mainBalance,
       total_assets: totalAssets,
       total_allocated_to_portfolio: totalAllocated,
-      allocation_percentage: `${allocationPercentage}%`,
+      allocation_percentage: allocationPercentage,
     },
     portfolios: portfolioSummary,
     recommended_stocks: recommendationsData.recommendations,

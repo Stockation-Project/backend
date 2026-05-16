@@ -5,10 +5,12 @@ import {
   fetchStockDetailService,
   fetchExploreStocksService,
   fetchRecommendedStocksService,
-  syncStocksMetadataService,
-  seedIdx80Service,
-  syncClusteringRiskService,
 } from "../services/stock.service.js";
+import { 
+  syncStocksMetadataService, 
+  seedIdx80Service 
+} from "../services/maintenance.service.js";
+import { syncClusteringRiskService } from "../services/ai.service.js";
 import { checkIsOnWatchlist } from "../models/watchlist.model.js";
 
 export const syncStocksController = async (req: Request, res: Response) => {

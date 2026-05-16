@@ -21,7 +21,7 @@ redisClient.on("error", (err) => {
 });
 
 redisClient.on("connect", () => {
-  console.log("✅ Redis Client Connected");
+  console.log("Redis Client Connected");
   isRedisConnected = true;
 });
 
@@ -30,7 +30,7 @@ export const connectRedis = async () => {
     await redisClient.connect();
     isRedisConnected = true;
   } catch (error) {
-    console.log("⚠️ Gagal terkoneksi ke Redis. Backend akan tetap berjalan TANPA Caching.");
+    console.log("Gagal terkoneksi ke Redis. Backend akan tetap berjalan TANPA Caching.");
     isRedisConnected = false;
   }
 };

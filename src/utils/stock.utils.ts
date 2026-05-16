@@ -1,12 +1,6 @@
-import YahooFinance from "yahoo-finance2";
-import axios from "axios";
+import yahooFinance from "../config/yahoo-finance.js";
+import aiClient from "../config/ai-client.js";
 import supabase from "../config/supabase.js";
-
-// --- KONFIGURASI GLOBAL ---
-const FASTAPI_URL = process.env.FASTAPI_URL || "http://127.0.0.1:8000";
-const yahooFinance = new YahooFinance({
-  suppressNotices: ["yahooSurvey", "ripHistorical"],
-});
 
 export const enrichWithRealtimeQuotes = async (dbStocks: any[]) => {
   const promises = dbStocks.map(async (dbStock) => {
@@ -74,9 +68,7 @@ export const fetchAndMapAIAnomalies = async (
   let isAnomalyActive = false;
 
   try {
-    const aiResponse = await axios.get(
-      `${FASTAPI_URL}/api/ai/anomalies/${cleanTicker}`,
-    );
+    const aiResponse = await aiClient.get(`/api/ai/anomalies/${cleanTicker}`);
 
     if (aiResponse.data && aiResponse.data.success) {
       const rawAnomalies = aiResponse.data.anomalies;
@@ -139,3 +131,4 @@ export const fetchAndMapAIAnomalies = async (
 
   return { anomalyHistory, aiSummary, isAnomalyActive };
 };
+

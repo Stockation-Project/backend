@@ -206,8 +206,6 @@ export const sellStockService = async (
   };
 };
 
-// src/services/transaction.service.ts
-
 export const getStockTransactionsService = async (portfolioId: string, ticker: string) => {
   const { data, error } = await supabase
     .from("transactions")
