@@ -5,6 +5,7 @@ import {
   fetchPortfolioDetailService,
   fetchAllUserPortfoliosService,
   CreatePortfolioPayload,
+  optimizePortfolioService,
 } from "../services/portfolio.service.js";
 
 export const createPortfolioController = async (
@@ -67,5 +68,27 @@ export const getUserPortfoliosController = async (
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const optimizePortfolioController = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const userId = req.user.id;
+    const { tickers } = req.body;
+
+    const result = await optimizePortfolioService(userId, tickers);
+
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
