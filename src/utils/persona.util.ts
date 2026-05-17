@@ -19,3 +19,21 @@ export const determinePersonaFromScore = (totalScore: number): string => {
   }
   return "capybara"; // Fallback
 };
+
+/**
+ * Memetakan persona user (5 jenis) ke dalam kategori profil risiko ML (3 jenis)
+ * @param riskProfile Kategori profil risiko dari database
+ * @returns Kategori profil risiko yang didukung ML ('konservatif' | 'moderat' | 'agresif')
+ */
+export const mapUserRiskToMLProfile = (riskProfile: string): string => {
+  const profile = riskProfile.toLowerCase();
+  if (profile === "turtle" || profile === "hippo") {
+    return "konservatif";
+  } else if (profile === "capybara") {
+    return "moderat";
+  } else if (profile === "wolf" || profile === "lion") {
+    return "agresif";
+  }
+  return "moderat"; // Fallback aman
+};
+
