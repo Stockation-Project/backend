@@ -6,7 +6,8 @@ import {
   LoginPayload,
   getDashboardSummaryService,
   getUserProfileService,
-  updateUserProfileService
+  updateUserProfileService,
+  uploadAvatarService
 } from "../services/user.service.js";
 import { AuthRequest } from "../middleware/auth.middleware.js";
 
@@ -99,6 +100,34 @@ export const updateUserProfileController = async (
     res.status(200).json({
       success: true,
       message: "Berhasil memperbarui profil",
+      data: user,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const uploadAvatarController = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const userId = req.user.id as string;
+    const { image } = req.body;
+
+    if (!image) {
+      res.status(400).json({
+        success: false,
+        message: "File gambar tidak ditemukan",
+      });
+      return;
+    }
+
+    const user = await uploadAvatarService(userId, image, req.token as string);
+
+    res.status(200).json({
+      success: true,
+      message: "Berhasil memperbarui foto profil",
       data: user,
     });
   } catch (error: any) {
