@@ -50,7 +50,7 @@ export const getPortfolioDetailController = async (
       data: result,
     });
   } catch (error: any) {
-    res.status(404).json({ success: false, message: error.message });
+    res.status(403).json({ success: false, message: error.message });
   }
 };
 

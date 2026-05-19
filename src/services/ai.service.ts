@@ -1,4 +1,3 @@
-// src/services/ai.service.ts
 import supabase from "../config/supabase.js";
 import aiClient from "../config/ai-client.js";
 import { redisClient } from "../utils/redis.util.js";
