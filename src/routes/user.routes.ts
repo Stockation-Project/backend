@@ -5,6 +5,7 @@ import {
   updateUserProfileController,
   loginController,
   registerController,
+  uploadAvatarController,
 } from "../controllers/user.controller.js";
 import { AuthRequest, requireAuth } from "../middleware/auth.middleware.js";
 
@@ -17,6 +18,7 @@ userRoutes.post("/login", loginController);
 // route jwt token
 userRoutes.get("/profile", requireAuth, getUserProfileController);
 userRoutes.put("/profile", requireAuth, updateUserProfileController);
+userRoutes.post("/profile/avatar", requireAuth, uploadAvatarController);
 
 userRoutes.get("/dashboard", requireAuth, getDashboardController);
 

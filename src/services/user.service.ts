@@ -1,4 +1,5 @@
 import supabase from "../config/supabase.js";
+import { createClient } from "@supabase/supabase-js";
 import {
   createUserInDB,
   findUserById,
@@ -188,4 +189,65 @@ export const getUserProfileService = async (userId: string) => {
 
 export const updateUserProfileService = async (userId: string, updates: any) => {
   return await updateUserById(userId, updates);
+};
+
+export const uploadAvatarService = async (userId: string, base64Image: string, userToken: string) => {
+  // 1. Ekstrak format dan data riil dari Base64
+  const matches = base64Image.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+  
+  if (!matches || matches.length !== 3) {
+    throw new Error("Format gambar base64 tidak valid");
+  }
+
+  const contentType = matches[1]; // misal: "image/png" atau "image/jpeg"
+  const base64Data = matches[2];
+  
+  // Ubah Base64 string menjadi Buffer biner
+  const fileBuffer = Buffer.from(base64Data, "base64");
+  
+  // Tentukan ekstensi file
+  const fileExtension = contentType.split("/")[1] || "png";
+  const fileName = `${userId}-${Date.now()}.${fileExtension}`;
+  const filePath = `${userId}/${fileName}`; // Disimpan dalam folder per-user di bucket
+
+  // Buat client Supabase terautentikasi khusus untuk user ini
+  const userSupabase = createClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_ANON_KEY!,
+    {
+      global: {
+        headers: {
+          Authorization: `Bearer ${userToken}`,
+        },
+      },
+    }
+  );
+
+  // 2. Upload file ke Supabase Storage menggunakan client terautentikasi user
+  const { data: uploadData, error: uploadError } = await userSupabase.storage
+    .from("avatars")
+    .upload(filePath, fileBuffer, {
+      contentType,
+      upsert: true,
+    });
+
+  if (uploadError) {
+    throw new Error(`Gagal mengunggah ke Storage: ${uploadError.message}`);
+  }
+
+  // 3. Dapatkan Public URL
+  const { data: urlData } = supabase.storage
+    .from("avatars")
+    .getPublicUrl(filePath);
+
+  if (!urlData || !urlData.publicUrl) {
+    throw new Error("Gagal mendapatkan public URL untuk avatar baru");
+  }
+
+  const publicUrl = urlData.publicUrl;
+
+  // 4. Update data avatar_url di tabel users
+  const updatedUser = await updateUserById(userId, { avatar_url: publicUrl });
+  
+  return updatedUser;
 };

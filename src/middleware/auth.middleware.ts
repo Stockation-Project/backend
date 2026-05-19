@@ -4,6 +4,7 @@ import supabase from "../config/supabase.js";
 // karna pakai typescript jadi butuh properti
 export interface AuthRequest extends Request {
   user?: any;
+  token?: string;
 }
 
 export const requireAuth = async (
@@ -38,6 +39,7 @@ export const requireAuth = async (
 
     // kalo tiketnya asli simpen ke Request
     req.user = data.user;
+    req.token = token;
 
     next();
   } catch (error: any) {
