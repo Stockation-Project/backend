@@ -20,7 +20,7 @@ app.use(
   cors({
     origin: [
       "https://stockation-app.vercel.app",
-      "https://frontend-cbsx.vercel.app", // Tambahkan ini juga
+      "https://frontend-cbsx.vercel.app", 
       "http://localhost:5173",
     ],
     credentials: true,
@@ -56,8 +56,7 @@ if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, '0.0.0.0', async () => {
     await connectRedis();
     console.log(
-      `🚀 [VERSI TERBARU] Stockation Backend Engine Aktif di Port: ${PORT}`,
+      `Stockation Backend Aktif di Port: ${PORT}`,
     );
-    console.log(`📡 Mendengarkan di 0.0.0.0 (Akses Publik Tersedia)`);
   });
 }

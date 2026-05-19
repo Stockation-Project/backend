@@ -157,7 +157,7 @@ export const fetchRecommendedStocksService = async (userId: string) => {
   // Jika data masih kosong (mungkin belum di-sync), ambil 5 saham random sebagai fallback aman
   let finalStocks = recommendedDbStocks;
   if (!finalStocks || finalStocks.length === 0) {
-    console.log(`⚠️ Risk level ${targetRiskLevel} empty in DB. Using fallback random stocks.`);
+    console.log(`Risk level ${targetRiskLevel} empty in DB. Using fallback random stocks.`);
     const allStocks = await getAllStocks();
     finalStocks = allStocks.slice(0, 5);
   }
