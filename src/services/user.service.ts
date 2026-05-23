@@ -27,6 +27,11 @@ export interface LoginPayload {
   password: string;
 }
 
+export interface GoogleSyncPayload {
+  user: any;
+  session: any;
+}
+
 // logic buat register
 export const registerUserService = async (body: RegisterPayload) => {
   const { first_name, last_name, email, password } = body;
@@ -85,6 +90,47 @@ export const loginUserService = async (body: LoginPayload) => {
     user: userProfile,
   };
 };
+
+// logic buat sinkronisasi akun google
+export const googleSyncService = async (body: GoogleSyncPayload) => {
+  const { user, session } = body;
+  
+  if (!user || !session) {
+    throw new Error("Data user atau sesi dari Google tidak valid");
+  }
+
+  let userProfile;
+  try {
+    userProfile = await findUserById(user.id);
+  } catch (error: any) {
+    // Jika tidak ditemukan, findUserById melempar error
+    userProfile = null;
+  }
+
+  // Jika user belum ada di public.users, buat baru
+  if (!userProfile) {
+    const fullName = user.user_metadata?.full_name || user.user_metadata?.name || "User";
+    const nameParts = fullName.split(" ");
+    const firstName = nameParts[0] || "User";
+    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "";
+
+    const newUserData: UserInsert = {
+      id: user.id,
+      first_name: firstName,
+      last_name: lastName,
+      email: user.email || "",
+      avatar_url: user.user_metadata?.avatar_url || null,
+    };
+
+    userProfile = await createUserInDB(newUserData);
+  }
+
+  return {
+    token: session.access_token,
+    user: userProfile,
+  };
+};
+
 
 import { PERSONA_DESCRIPTIONS } from "../constants/personas.js";
 
