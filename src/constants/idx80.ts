@@ -81,4 +81,6 @@ export const IDX80_STOCKS = [
   { ticker: "BTPS", name: "Bank BTPN Syariah Tbk." },
   { ticker: "PNBN", name: "Bank Pan Indonesia Tbk." },
   { ticker: "AVIA", name: "Avia Avian Tbk." },
+  { ticker: "PANI", name: "Pratama Abadi Nusa Industri Tbk." },
+  { ticker: "RATU", name: "Eatertainment International Tbk." },
 ];
