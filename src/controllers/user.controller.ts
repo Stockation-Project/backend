@@ -2,8 +2,10 @@ import { Request, Response } from "express";
 import {
   registerUserService,
   loginUserService,
+  googleSyncService,
   RegisterPayload,
   LoginPayload,
+  GoogleSyncPayload,
   getDashboardSummaryService,
   getUserProfileService,
   updateUserProfileService,
@@ -42,6 +44,26 @@ export const loginController = async (
     res.status(200).json({
       success: true,
       message: "Login Berhasil",
+      data: result,
+    });
+  } catch (error: any) {
+    res.status(401).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const googleSyncController = async (
+  req: Request<{}, {}, GoogleSyncPayload>,
+  res: Response,
+): Promise<void> => {
+  try {
+    const result = await googleSyncService(req.body);
+
+    res.status(200).json({
+      success: true,
+      message: "Sinkronisasi Google Auth Berhasil",
       data: result,
     });
   } catch (error: any) {
