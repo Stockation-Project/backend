@@ -1,6 +1,6 @@
 import supabase from "../config/supabase.js";
 import aiClient from "../config/ai-client.js";
-import { redisClient } from "../utils/redis.util.js";
+import { redisClient, getCache, setCache } from "../utils/redis.util.js";
 
 /**
  * Sinkronisasi tingkat risiko saham berdasarkan clustering ML
@@ -47,6 +47,42 @@ export const syncClusteringRiskService = async () => {
     return results;
   } catch (error: any) {
     console.error("Error in syncClusteringRiskService:", error.message);
+    throw error;
+  }
+};
+
+/**
+ * Mendapatkan penjelasan istilah saham dari AI dengan Redis Caching
+ */
+export const explainTermService = async (term: string, context?: string) => {
+  try {
+    const contextSuffix = context ? `:${context.toLowerCase().replace(/\s+/g, "_")}` : "";
+    const cacheKey = `ai:explain:${term.toLowerCase()}${contextSuffix}`;
+    const cachedData = await getCache(cacheKey);
+
+    if (cachedData) {
+      return cachedData;
+    }
+
+    const payload: any = { term };
+    if (context) {
+      payload.context = context;
+    }
+
+    const mlResponse = await aiClient.post("/api/ai/explain", payload);
+
+    if (!mlResponse.data || !mlResponse.data.success) {
+      throw new Error("Gagal mendapatkan penjelasan dari ML Service");
+    }
+
+    const explanation = mlResponse.data.data.explanation;
+
+    // Simpan di cache selama 30 hari karena definisi tidak berubah
+    await setCache(cacheKey, 60 * 60 * 24 * 30, explanation);
+
+    return explanation;
+  } catch (error: any) {
+    console.error("Error in explainTermService:", error.message);
     throw error;
   }
 };
