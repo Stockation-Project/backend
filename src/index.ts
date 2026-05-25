@@ -9,6 +9,7 @@ import stockRoutes from "./routes/stock.routes.js";
 import transactionRoutes from "./routes/transaction.routes.js";
 import walletRouter from "./routes/wallet.routes.js";
 import exploreRoutes from "./routes/explore.routes.js";
+import aiRoutes from "./routes/ai.routes.js";
 
 
 dotenv.config();
@@ -45,6 +46,7 @@ app.use('/api/transactions', transactionRoutes)
 
 app.use("/api/wallets", walletRouter);
 app.use("/api/explore", exploreRoutes);
+app.use("/api/ai", aiRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "Server Stockation API berjalan dengan baik!" });
