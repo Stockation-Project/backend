@@ -14,6 +14,10 @@ import aiRoutes from "./routes/ai.routes.js";
 
 import { globalErrorHandler } from "./middleware/error.middleware.js";
 
+// Swagger
+import swaggerUi from "swagger-ui-express";
+import { swaggerDocument } from "./docs/swagger.js";
+
 dotenv.config();
 
 const app = express();
@@ -49,6 +53,9 @@ app.use('/api/transactions', transactionRoutes)
 app.use("/api/wallets", walletRouter);
 app.use("/api/explore", exploreRoutes);
 app.use("/api/ai", aiRoutes);
+
+// Swagger Documentation Route
+app.use("/stockation-api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.get("/", (req, res) => {
   res.json({ message: "Server Stockation API berjalan dengan baik!" });

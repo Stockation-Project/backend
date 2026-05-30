@@ -41,7 +41,7 @@ describe("User Service", () => {
           return { select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: mockUser, error: null }) }) }) };
         }
         if (table === "wallets") {
-          return { select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: mockWallet, error: null }) }) }) };
+          return { select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: mockWallet, error: null }) }) }) };
         }
         if (table === "portfolios") {
           return { select: () => ({ eq: () => Promise.resolve({ data: mockPortfolios, error: null }) }) };
