@@ -50,3 +50,14 @@ export const getStocksByRiskLevel = async (riskLevel: string) => {
 
   return data;
 };
+
+export const updateStockAnomalyStatus = async (ticker: string, isAnomaly: boolean) => {
+  const { error } = await supabase
+    .from("stocks")
+    .update({ is_anomaly: isAnomaly })
+    .eq("ticker", ticker);
+
+  if (error) {
+    console.error(`Gagal update status anomali untuk ${ticker}:`, error.message);
+  }
+};

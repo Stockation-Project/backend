@@ -12,123 +12,94 @@ import {
 } from "../services/maintenance.service.js";
 import { syncClusteringRiskService } from "../services/ai.service.js";
 import { checkIsOnWatchlist } from "../models/watchlist.model.js";
+import { catchAsync } from "../utils/catchAsync.js";
+import { AppError } from "../utils/AppError.js";
 
-export const syncStocksController = async (req: Request, res: Response) => {
-  try {
-    const report = await syncStocksMetadataService();
-    res.status(200).json({
-      success: true,
-      message: "Proses sinkronisasi selesai",
-      data: report,
-    });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+export const syncStocksController = catchAsync(async (req: Request, res: Response) => {
+  const report = await syncStocksMetadataService();
+  res.status(200).json({
+    success: true,
+    message: "Proses sinkronisasi selesai",
+    data: report,
+  });
+});
 
-export const syncClusteringController = async (req: Request, res: Response) => {
-  try {
-    const report = await syncClusteringRiskService();
-    res.status(200).json({
-      success: true,
-      message: "Sinkronisasi risk level saham berdasarkan clustering AI selesai!",
-      data: report,
-    });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+export const syncClusteringController = catchAsync(async (req: Request, res: Response) => {
+  const report = await syncClusteringRiskService();
+  res.status(200).json({
+    success: true,
+    message: "Sinkronisasi risk level saham berdasarkan clustering AI selesai!",
+    data: report,
+  });
+});
 
 
 // Pastikan kamu mengimpor seedIdx80Service dari stock.service.js
-export const seedStocksController = async (req: Request, res: Response) => {
-  try {
-    const report = await seedIdx80Service();
-    res.status(200).json({
-      success: true,
-      message: "Proses penanaman 80 saham dan sinkronisasi otomatis selesai!",
-      data: report,
-    });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+export const seedStocksController = catchAsync(async (req: Request, res: Response) => {
+  const report = await seedIdx80Service();
+  res.status(200).json({
+    success: true,
+    message: "Proses penanaman 80 saham dan sinkronisasi otomatis selesai!",
+    data: report,
+  });
+});
 
-export const getStocksController = async (
+export const getStocksController = catchAsync(async (
   req: AuthRequest,
   res: Response,
-): Promise<void> => {
-  try {
-    const stocks = await fetchAllStocksService();
+) => {
+  const stocks = await fetchAllStocksService();
 
-    res.status(200).json({
-      success: true,
-      message: "Berhasil mengambil data saham",
-      data: stocks,
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+  res.status(200).json({
+    success: true,
+    message: "Berhasil mengambil data saham",
+    data: stocks,
+  });
+});
 
-export const getStockDetailController = async (
+export const getStockDetailController = catchAsync(async (
   req: AuthRequest,
   res: Response,
-): Promise<void> => {
-  try {
-    const ticker = req.params.ticker as string;
-    const userId = req.user.id;
-    
-    const detail = await fetchStockDetailService(ticker);
-    const isOnWatchlist = await checkIsOnWatchlist(userId, ticker);
+) => {
+  const ticker = req.params.ticker as string;
+  const userId = req.user.id;
+  
+  const detail = await fetchStockDetailService(ticker);
+  const isOnWatchlist = await checkIsOnWatchlist(userId, ticker);
 
-    res.status(200).json({
-      success: true,
-      message: `Berhasil mengambil detail saham ${ticker}`,
-      data: {
-        ...detail,
-        is_watchlist: isOnWatchlist
-      },
-    });
-  } catch (error: any) {
-    res.status(404).json({ success: false, message: error.message });
-  }
-};
+  res.status(200).json({
+    success: true,
+    message: `Berhasil mengambil detail saham ${ticker}`,
+    data: {
+      ...detail,
+      is_watchlist: isOnWatchlist
+    },
+  });
+});
 
-export const getExploreStocksController = async (
+export const getExploreStocksController = catchAsync(async (
   req: AuthRequest,
   res: Response,
-): Promise<void> => {
-  try {
-    const data = await fetchExploreStocksService();
+) => {
+  const data = await fetchExploreStocksService();
 
-    res.status(200).json({
-      success: true,
-      message: "Berhasil mengambil data Explore (Gainers & Losers)",
-      data: data,
-    });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+  res.status(200).json({
+    success: true,
+    message: "Berhasil mengambil data Explore (Gainers & Losers)",
+    data: data,
+  });
+});
 
-export const getRecommendedStocksController = async (
+export const getRecommendedStocksController = catchAsync(async (
   req: AuthRequest,
   res: Response,
-): Promise<void> => {
-  try {
-    const userId = req.user.id as string; // Ambil ID dari token JWT
-    const data = await fetchRecommendedStocksService(userId);
+) => {
+  const userId = req.user.id as string; // Ambil ID dari token JWT
+  const data = await fetchRecommendedStocksService(userId);
 
-    res.status(200).json({
-      success: true,
-      message: `Berhasil mengambil rekomendasi saham untuk profil ${data.user_risk_profile}`,
-      data: data,
-    });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+  res.status(200).json({
+    success: true,
+    message: `Berhasil mengambil rekomendasi saham untuk profil ${data.user_risk_profile}`,
+    data: data,
+  });
+});

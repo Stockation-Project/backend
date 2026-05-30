@@ -7,11 +7,13 @@ import {
   UserInsert,
 } from "../models/user.model.js";
 import { fetchRecommendedStocksService } from "./stock.service.js";
-import { enrichWithRealtimeQuotes } from "../utils/stock.utils.js";
+import { enrichWithRealtimeQuotes } from "../adapters/yahoo.adapter.js";
 import { 
   calculatePortfolioMetrics, 
   calculateAllocationPercentage 
 } from "../utils/calculation.util.js";
+import { getWalletById } from "../models/wallet.model.js";
+import { getAllUserPortfoliosWithHoldings } from "../models/portfolio.model.js";
 
 // Ini data payload register
 export interface RegisterPayload {
@@ -136,30 +138,15 @@ import { PERSONA_DESCRIPTIONS } from "../constants/personas.js";
 
 export const getDashboardSummaryService = async (userId: string) => {
   // 1. Ambil Profil User (Nama & Persona)
-  const { data: user, error: userError } = await supabase
-    .from("users")
-    .select("first_name, risk_profile, risk_score")
-    .eq("id", userId)
-    .single();
-  if (userError) throw new Error("Gagal mengambil data user.");
+  const user = await findUserById(userId);
+  if (!user) throw new Error("Gagal mengambil data user.");
 
   // 2. Ambil Dompet Utama
-  const { data: wallet, error: walletError } = await supabase
-    .from("wallets")
-    .select("balance")
-    .eq("user_id", userId)
-    .single();
-  if (walletError) throw new Error("Gagal mengambil data dompet.");
+  const wallet = await getWalletById(userId);
+  if (!wallet) throw new Error("Gagal mengambil data dompet.");
 
   // 3. Ambil Daftar Portofolio (dengan holdings)
-  const { data: portfolios, error: portoError } = await supabase
-    .from("portfolios")
-    .select(`
-      id, name, cash_balance, invested_balance,
-      portfolio_holdings ( ticker, total_shares, avg_buy_price )
-    `)
-    .eq("user_id", userId);
-  if (portoError) throw new Error("Gagal mengambil data portofolio.");
+  const portfolios = await getAllUserPortfoliosWithHoldings(userId);
 
   // 4. Ambil Harga Live Semua Kepemilikan (Untuk Kalkulasi Profit)
   const uniqueTickers = new Set<string>();

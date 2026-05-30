@@ -9,6 +9,10 @@ import {
   updatePortfolioBalance,
   getPortfolioWithHoldings,
 } from "../models/portfolio.model.js";
+import {
+  insertTransaction,
+  getTransactionsByPortfolioAndTicker
+} from "../models/transaction.model.js";
 
 export interface BuyStockPayload {
   portfolio_id: string;
@@ -81,9 +85,8 @@ export const buyStockService = async (
     newInvested,
   );
 
-  const { error: transactionError } = await supabase
-    .from("transactions")
-    .insert({
+  try {
+    await insertTransaction({
       user_id: userId,
       portfolio_id: portfolio_id,
       ticker: ticker,
@@ -92,8 +95,7 @@ export const buyStockService = async (
       price: current_price,
       total_amount: totalCost,
     });
-
-  if (transactionError) {
+  } catch (transactionError) {
     throw new Error("Gagal mencatat riwayat transaksi");
   }
 
@@ -176,9 +178,8 @@ export const sellStockService = async (
     newInvested,
   );
 
-  const { error: transactionError } = await supabase
-    .from("transactions")
-    .insert({
+  try {
+    await insertTransaction({
       user_id: userId,
       portfolio_id: portfolio_id,
       ticker: ticker,
@@ -187,8 +188,7 @@ export const sellStockService = async (
       price: current_price,
       total_amount: totalRevenue,
     });
-
-  if (transactionError) {
+  } catch (transactionError) {
     throw new Error("Gagal mencatat riwayat transaksi");
   }
 
@@ -207,16 +207,10 @@ export const sellStockService = async (
 };
 
 export const getStockTransactionsService = async (portfolioId: string, ticker: string) => {
-  const { data, error } = await supabase
-    .from("transactions")
-    .select("*")
-    .eq("portfolio_id", portfolioId)
-    .eq("ticker", ticker)
-    .order("created_at", { ascending: false });
-
-  if (error) {
+  try {
+    const data = await getTransactionsByPortfolioAndTicker(portfolioId, ticker);
+    return data;
+  } catch (error: any) {
     throw new Error("Gagal mengambil riwayat transaksi: " + error.message);
   }
-
-  return data;
 };
