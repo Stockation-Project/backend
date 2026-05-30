@@ -22,7 +22,7 @@ vi.mock("../../config/ai-client.js", () => ({
   }
 }));
 
-vi.mock("../../utils/redis.util.ts", () => ({
+vi.mock("../../utils/redis.util.js", () => ({
   redisClient: {
     flushAll: vi.fn(() => Promise.resolve())
   }
