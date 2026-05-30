@@ -4,7 +4,7 @@ import {
   removeTickerFromWatchlist,
   checkIsOnWatchlist
 } from "../models/watchlist.model.js";
-import { enrichWithRealtimeQuotes } from "../utils/stock.utils.js";
+import { enrichWithRealtimeQuotes } from "../adapters/yahoo.adapter.js";
 import { getCache, setCache, getSmartTTL, delCache } from "../utils/redis.util.js";
 
 export const getWatchlistService = async (userId: string) => {

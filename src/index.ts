@@ -12,6 +12,8 @@ import exploreRoutes from "./routes/explore.routes.js";
 import aiRoutes from "./routes/ai.routes.js";
 
 
+import { globalErrorHandler } from "./middleware/error.middleware.js";
+
 dotenv.config();
 
 const app = express();
@@ -51,6 +53,8 @@ app.use("/api/ai", aiRoutes);
 app.get("/", (req, res) => {
   res.json({ message: "Server Stockation API berjalan dengan baik!" });
 });
+
+app.use(globalErrorHandler);
 
 export default app;
 
