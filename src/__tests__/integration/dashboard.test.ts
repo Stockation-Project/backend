@@ -64,6 +64,7 @@ describe("Integration: Dashboard Flow", () => {
       order: () => mockDbResponse(data),
       limit: () => mockDbResponse(data),
       single: () => Promise.resolve({ data, error: null }),
+      maybeSingle: () => Promise.resolve({ data, error: null }),
       then: (cb: any) => Promise.resolve(cb({ data, error: null }))
     });
 

@@ -136,17 +136,34 @@ export const googleSyncService = async (body: GoogleSyncPayload) => {
 
 import { PERSONA_DESCRIPTIONS } from "../constants/personas.js";
 
+import { AppError } from "../utils/AppError.js";
+
 export const getDashboardSummaryService = async (userId: string) => {
   // 1. Ambil Profil User (Nama & Persona)
-  const user = await findUserById(userId);
-  if (!user) throw new Error("Gagal mengambil data user.");
+  let user;
+  try {
+    user = await findUserById(userId);
+  } catch (error) {
+    throw new AppError("Gagal mengambil data user.", 404);
+  }
+  if (!user) throw new AppError("Gagal mengambil data user.", 404);
 
   // 2. Ambil Dompet Utama
-  const wallet = await getWalletById(userId);
-  if (!wallet) throw new Error("Gagal mengambil data dompet.");
+  let wallet;
+  try {
+    wallet = await getWalletById(userId);
+  } catch (error) {
+    throw new AppError("Gagal mengambil data dompet.", 404);
+  }
+  if (!wallet) throw new AppError("Gagal mengambil data dompet.", 404);
 
   // 3. Ambil Daftar Portofolio (dengan holdings)
-  const portfolios = await getAllUserPortfoliosWithHoldings(userId);
+  let portfolios;
+  try {
+    portfolios = await getAllUserPortfoliosWithHoldings(userId);
+  } catch (error) {
+    throw new AppError("Gagal mengambil data portofolio.", 404);
+  }
 
   // 4. Ambil Harga Live Semua Kepemilikan (Untuk Kalkulasi Profit)
   const uniqueTickers = new Set<string>();
