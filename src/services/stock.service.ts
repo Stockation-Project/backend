@@ -12,9 +12,14 @@ import { USER_TO_ML_RISK_MAPPING } from "../constants/risk.js";
 import {
   enrichWithRealtimeQuotes,
   calculateCAGR3Y,
-  fetchAndMapAIAnomalies,
-} from "../utils/stock.utils.js";
-import { getSmartTTL, getCache, setCache, redisClient } from "../utils/redis.util.js";
+} from "../adapters/yahoo.adapter.js";
+import { fetchAndMapAIAnomalies } from "../adapters/ai.adapter.js";
+import {
+  getSmartTTL,
+  getCache,
+  setCache,
+  redisClient,
+} from "../utils/redis.util.js";
 
 export const fetchAllStocksService = async () => {
   const cacheKey = "stocks:all";
@@ -27,14 +32,14 @@ export const fetchAllStocksService = async () => {
   const stocks = await getAllStocks();
   if (!stocks || stocks.length === 0)
     throw new Error("Data saham tidak ditemukan atau masih kosong.");
-    
+
   await setCache(cacheKey, getSmartTTL(), stocks);
   return stocks;
 };
 
 export const fetchStockDetailService = async (ticker: string) => {
   const cleanTicker = ticker.toUpperCase().replace(".JK", "");
-  
+
   const cacheKey = `stock:detail:${cleanTicker}`;
   const cachedData = await getCache(cacheKey);
   if (cachedData) {
@@ -51,15 +56,21 @@ export const fetchStockDetailService = async (ticker: string) => {
   // 1. Ambil Data Fundamental
   let der = null;
   let dividend = null;
+  let yfSector = "Financial Services";
+  let yfIndustry = "Banks - Regional";
   try {
     const summary: any = await yahooFinance.quoteSummary(yahooTicker, {
-      modules: ["financialData", "summaryDetail"],
+      modules: ["financialData", "summaryDetail", "assetProfile"],
     });
     der = summary?.financialData?.debtToEquity || null;
     dividend =
       summary?.summaryDetail?.dividendYield ||
       quote?.trailingAnnualDividendYield ||
       null;
+    if (summary?.assetProfile) {
+      yfSector = summary.assetProfile.sector || yfSector;
+      yfIndustry = summary.assetProfile.industry || yfIndustry;
+    }
   } catch (error) {
     console.log(`Gagal mengambil data fundamental untuk ${ticker}`);
   }
@@ -86,6 +97,34 @@ export const fetchStockDetailService = async (ticker: string) => {
   const { anomalyHistory, aiSummary, isAnomalyActive } =
     await fetchAndMapAIAnomalies(cleanTicker, companyName);
 
+  // 4.5. Ambil Data AI Volatilitas
+  let volatilityData = null;
+  try {
+    const mlResponse = await aiClient.post("/api/ai/volatility", {
+      ticker: yahooTicker,
+      sector: yfSector,
+      industry: yfIndustry,
+    });
+    if (mlResponse.data && mlResponse.data.forecast_10d) {
+      const currentPrice = quote.regularMarketPrice;
+      const calcSwing = (forecast: any) => {
+        return (
+          ((forecast.price_high - forecast.price_low) / currentPrice) * 100
+        );
+      };
+      volatilityData = {
+        forecast_10d: calcSwing(mlResponse.data.forecast_10d),
+        forecast_1m: calcSwing(mlResponse.data.forecast_1m),
+        forecast_3m: calcSwing(mlResponse.data.forecast_3m),
+      };
+    }
+  } catch (error: any) {
+    console.log(
+      `Gagal mengambil data volatilitas AI untuk ${ticker}:`,
+      error.message,
+    );
+  }
+
   // 5. Return JSON Rapi
   const result = {
     ticker: cleanTicker,
@@ -102,6 +141,7 @@ export const fetchStockDetailService = async (ticker: string) => {
     chart_data: chartData,
     anomaly_history: anomalyHistory,
     ai_summary: aiSummary,
+    volatility: volatilityData,
     sector: dbStock?.sector || "Lainnya",
     about_company:
       dbStock?.description || "Deskripsi perusahaan belum tersedia.",
@@ -149,15 +189,18 @@ export const fetchRecommendedStocksService = async (userId: string) => {
   }
 
   const userPersona = await getUserRiskProfile(userId);
-  
-  const targetRiskLevel = USER_TO_ML_RISK_MAPPING[userPersona.toLowerCase()] || "Medium";
+
+  const targetRiskLevel =
+    USER_TO_ML_RISK_MAPPING[userPersona.toLowerCase()] || "Medium";
 
   const recommendedDbStocks = await getStocksByRiskLevel(targetRiskLevel);
 
   // Jika data masih kosong (mungkin belum di-sync), ambil 5 saham random sebagai fallback aman
   let finalStocks = recommendedDbStocks;
   if (!finalStocks || finalStocks.length === 0) {
-    console.log(`Risk level ${targetRiskLevel} empty in DB. Using fallback random stocks.`);
+    console.log(
+      `Risk level ${targetRiskLevel} empty in DB. Using fallback random stocks.`,
+    );
     const allStocks = await getAllStocks();
     finalStocks = allStocks.slice(0, 5);
   }

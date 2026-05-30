@@ -80,3 +80,17 @@ export const getPortfolioWithHoldings = async (
   if (error) throw error;
   return data;
 };
+
+// narik semua portfolio beserta holdings untuk summary dashboard
+export const getAllUserPortfoliosWithHoldings = async (userId: string) => {
+  const { data, error } = await supabase
+    .from("portfolios")
+    .select(`
+      id, name, cash_balance, invested_balance,
+      portfolio_holdings ( ticker, total_shares, avg_buy_price )
+    `)
+    .eq("user_id", userId);
+
+  if (error) throw error;
+  return data;
+};

@@ -12,147 +12,108 @@ import {
   uploadAvatarService
 } from "../services/user.service.js";
 import { AuthRequest } from "../middleware/auth.middleware.js";
+import { catchAsync } from "../utils/catchAsync.js";
+import { AppError } from "../utils/AppError.js";
 
 // menyisipkan tipe register payload tadi ke request body
-export const registerController = async (
+export const registerController = catchAsync(async (
   req: Request<{}, {}, RegisterPayload>,
   res: Response,
-): Promise<void> => {
-  try {
-    const user = await registerUserService(req.body);
+) => {
+  const user = await registerUserService(req.body);
 
-    res.status(201).json({
-      success: true,
-      message: "Registrasi Berhasil dan Terhubung ke Supabase Auth",
-      data: user,
-    });
-  } catch (error: any) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+  res.status(201).json({
+    success: true,
+    message: "Registrasi Berhasil dan Terhubung ke Supabase Auth",
+    data: user,
+  });
+});
 
-export const loginController = async (
+export const loginController = catchAsync(async (
   req: Request<{}, {}, LoginPayload>,
   res: Response,
-): Promise<void> => {
-  try {
-    const result = await loginUserService(req.body);
+) => {
+  const result = await loginUserService(req.body);
 
-    res.status(200).json({
-      success: true,
-      message: "Login Berhasil",
-      data: result,
-    });
-  } catch (error: any) {
-    res.status(401).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+  res.status(200).json({
+    success: true,
+    message: "Login Berhasil",
+    data: result,
+  });
+});
 
-export const googleSyncController = async (
+export const googleSyncController = catchAsync(async (
   req: Request<{}, {}, GoogleSyncPayload>,
   res: Response,
-): Promise<void> => {
-  try {
-    const result = await googleSyncService(req.body);
+) => {
+  const result = await googleSyncService(req.body);
 
-    res.status(200).json({
-      success: true,
-      message: "Sinkronisasi Google Auth Berhasil",
-      data: result,
-    });
-  } catch (error: any) {
-    res.status(401).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+  res.status(200).json({
+    success: true,
+    message: "Sinkronisasi Google Auth Berhasil",
+    data: result,
+  });
+});
 
-export const getDashboardController = async (
+export const getDashboardController = catchAsync(async (
   req: AuthRequest,
   res: Response,
-): Promise<void> => {
-  try {
-    const userId = req.user.id as string;
-    const dashboardData = await getDashboardSummaryService(userId);
+) => {
+  const userId = req.user.id as string;
+  const dashboardData = await getDashboardSummaryService(userId);
 
-    res.status(200).json({
-      success: true,
-      message: "Berhasil memuat data dashboard utama",
-      data: dashboardData,
-    });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+  res.status(200).json({
+    success: true,
+    message: "Berhasil memuat data dashboard utama",
+    data: dashboardData,
+  });
+});
 
-export const getUserProfileController = async (
+export const getUserProfileController = catchAsync(async (
   req: AuthRequest,
   res: Response,
-): Promise<void> => {
-  try {
-    const userId = req.user.id as string;
-    const user = await getUserProfileService(userId);
+) => {
+  const userId = req.user.id as string;
+  const user = await getUserProfileService(userId);
 
-    res.status(200).json({
-      success: true,
-      message: "Berhasil mengambil data profil",
-      data: user,
-    });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+  res.status(200).json({
+    success: true,
+    message: "Berhasil mengambil data profil",
+    data: user,
+  });
+});
 
-export const updateUserProfileController = async (
+export const updateUserProfileController = catchAsync(async (
   req: AuthRequest,
   res: Response,
-): Promise<void> => {
-  try {
-    const userId = req.user.id as string;
-    const updates = req.body;
-    const user = await updateUserProfileService(userId, updates);
+) => {
+  const userId = req.user.id as string;
+  const updates = req.body;
+  const user = await updateUserProfileService(userId, updates);
 
-    res.status(200).json({
-      success: true,
-      message: "Berhasil memperbarui profil",
-      data: user,
-    });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+  res.status(200).json({
+    success: true,
+    message: "Berhasil memperbarui profil",
+    data: user,
+  });
+});
 
-export const uploadAvatarController = async (
+export const uploadAvatarController = catchAsync(async (
   req: AuthRequest,
   res: Response,
-): Promise<void> => {
-  try {
-    const userId = req.user.id as string;
-    const { image } = req.body;
+) => {
+  const userId = req.user.id as string;
+  const { image } = req.body;
 
-    if (!image) {
-      res.status(400).json({
-        success: false,
-        message: "File gambar tidak ditemukan",
-      });
-      return;
-    }
-
-    const user = await uploadAvatarService(userId, image, req.token as string);
-
-    res.status(200).json({
-      success: true,
-      message: "Berhasil memperbarui foto profil",
-      data: user,
-    });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+  if (!image) {
+    throw new AppError("File gambar tidak ditemukan", 400);
   }
-};
+
+  const user = await uploadAvatarService(userId, image, req.token as string);
+
+  res.status(200).json({
+    success: true,
+    message: "Berhasil memperbarui foto profil",
+    data: user,
+  });
+});

@@ -4,30 +4,24 @@ import {
   processQuestionnaireService,
   QuestionnairePayload,
 } from "../services/questionnaire.service.js";
+import { catchAsync } from "../utils/catchAsync.js";
 
-export const submitQuestionnaireController = async (
+export const submitQuestionnaireController = catchAsync(async (
   req: AuthRequest,
   res: Response,
-): Promise<void> => {
-  try {
-    // req.user.id ini dapet otomatis dari middleware
-    const userId = req.user.id;
+) => {
+  // req.user.id ini dapet otomatis dari middleware
+  const userId = req.user.id;
 
-    const result = await processQuestionnaireService(
-      userId,
-      req.body as QuestionnairePayload,
-    );
+  const result = await processQuestionnaireService(
+    userId,
+    req.body as QuestionnairePayload,
+  );
 
-    res.status(200).json({
-      success: true,
-      message:
-        "Kuesioner berhasil diproses, Profile Risiko dan Wallet 100jt aktif",
-      data: result,
-    });
-  } catch (error: any) {
-    res.status(400).json({
-      success: true,
-      message: error.message,
-    });
-  }
-};
+  res.status(200).json({
+    success: true,
+    message:
+      "Kuesioner berhasil diproses, Profile Risiko dan Wallet 100jt aktif",
+    data: result,
+  });
+});
