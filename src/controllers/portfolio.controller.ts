@@ -62,9 +62,9 @@ export const optimizePortfolioController = catchAsync(async (
   res: Response,
 ) => {
   const userId = req.user.id;
-  const { tickers } = req.body;
+  const { tickers, risk_tolerance } = req.body;
 
-  const result = await optimizePortfolioService(userId, tickers);
+  const result = await optimizePortfolioService(userId, tickers, risk_tolerance);
 
   res.status(200).json({
     success: true,

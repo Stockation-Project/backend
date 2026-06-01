@@ -269,8 +269,39 @@ export const swaggerDocument = {
     },
     "/portfolios/optimize": {
       post: {
-        summary: "Optimasi portofolio via AI",
+        summary: "Optimasi portofolio via AI (Mean-CVaR)",
+        description:
+          "Menghitung bobot optimal saham menggunakan metode Mean-CVaR. " +
+          "Toleransi risiko default mengikuti profil risiko user; user dapat " +
+          "menggesernya lewat slider (0.0 = paling aman, 1.0 = paling agresif).",
         tags: ["Portfolios"],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["tickers"],
+                properties: {
+                  tickers: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "Minimal 2 ticker saham (mis. ['BBCA', 'TLKM']).",
+                  },
+                  risk_tolerance: {
+                    type: "number",
+                    minimum: 0,
+                    maximum: 1,
+                    nullable: true,
+                    description:
+                      "Posisi slider toleransi risiko (0.0–1.0). Kosongkan/null " +
+                      "untuk memakai default sesuai profil risiko user.",
+                  },
+                },
+              },
+            },
+          },
+        },
         responses: {
           "200": { description: "Success" },
         },
