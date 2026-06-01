@@ -76,7 +76,11 @@ export const fetchAllUserPortfoliosService = async (userId: string) => {
   return data;
 };
 
-export const optimizePortfolioService = async (userId: string, tickers: string[]) => {
+export const optimizePortfolioService = async (
+  userId: string,
+  tickers: string[],
+  riskTolerance?: number | null,
+) => {
   if (!tickers || tickers.length < 2) {
     throw new Error("Minimal 2 saham dibutuhkan untuk melakukan optimasi portofolio.");
   }
@@ -88,11 +92,19 @@ export const optimizePortfolioService = async (userId: string, tickers: string[]
   }
 
   const mlProfile = mapUserRiskToMLProfile(user.risk_profile || "capybara");
-  
-  // 2. Hitung toleransi risiko linear desimal (0.0 - 1.0)
-  const riskTolerance = user.risk_score 
-    ? Number((user.risk_score / 47).toFixed(4)) 
-    : 0.5;
+
+  // 2. Tentukan toleransi risiko (slider 0.0 - 1.0):
+  //    - Jika user menggeser slider di frontend → pakai nilai tersebut.
+  //    - Jika tidak (undefined/null) → kirim null agar ML memakai default
+  //      sesuai profil risiko user (default_risk_tolerance per profil).
+  let effectiveRiskTolerance: number | null = null;
+  if (riskTolerance !== undefined && riskTolerance !== null) {
+    // Clamp ke rentang valid [0, 1]
+    effectiveRiskTolerance = Math.min(1, Math.max(0, Number(riskTolerance)));
+    if (Number.isNaN(effectiveRiskTolerance)) {
+      effectiveRiskTolerance = null;
+    }
+  }
 
   // 3. Tambahkan akhiran .JK (format Yahoo Finance) untuk kebutuhan fetch data historis ML
   const formattedTickers = tickers.map((t) => 
@@ -103,7 +115,7 @@ export const optimizePortfolioService = async (userId: string, tickers: string[]
   const mlResponse = await aiClient.post("/api/ai/optimize", {
     tickers: formattedTickers,
     risk_profile: mlProfile,
-    risk_tolerance: riskTolerance,
+    risk_tolerance: effectiveRiskTolerance,
     period_key: "1_tahun",
   });
 
@@ -124,5 +136,6 @@ export const optimizePortfolioService = async (userId: string, tickers: string[]
     metrics: mlResponse.data.data.metrics,
     method: mlResponse.data.data.method,
     risk_profile: mlProfile,
+    metadata: mlResponse.data.data.metadata,
   };
 };
