@@ -106,10 +106,10 @@ export const fetchStockDetailService = async (ticker: string) => {
       industry: yfIndustry,
     });
     if (mlResponse.data && mlResponse.data.forecast_10d) {
-      const currentPrice = quote.regularMarketPrice;
+      const mlCurrentPrice = mlResponse.data.current_price;
       const calcSwing = (forecast: any) => {
-        const swingUp = ((forecast.price_high - currentPrice) / currentPrice) * 100;
-        const swingDown = ((currentPrice - forecast.price_low) / currentPrice) * 100;
+        const swingUp = ((forecast.price_high - mlCurrentPrice) / mlCurrentPrice) * 100;
+        const swingDown = ((mlCurrentPrice - forecast.price_low) / mlCurrentPrice) * 100;
         return Math.max(swingUp, swingDown);
       };
       volatilityData = {
