@@ -108,9 +108,9 @@ export const fetchStockDetailService = async (ticker: string) => {
     if (mlResponse.data && mlResponse.data.forecast_10d) {
       const currentPrice = quote.regularMarketPrice;
       const calcSwing = (forecast: any) => {
-        return (
-          ((forecast.price_high - forecast.price_low) / currentPrice) * 100
-        );
+        const swingUp = ((forecast.price_high - currentPrice) / currentPrice) * 100;
+        const swingDown = ((currentPrice - forecast.price_low) / currentPrice) * 100;
+        return Math.max(swingUp, swingDown);
       };
       volatilityData = {
         forecast_10d: calcSwing(mlResponse.data.forecast_10d),
