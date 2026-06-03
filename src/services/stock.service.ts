@@ -22,7 +22,7 @@ import {
 } from "../utils/redis.util.js";
 
 export const fetchAllStocksService = async () => {
-  const cacheKey = "stocks:all";
+  const cacheKey = "stocks:all:v2";
   const cachedData = await getCache(cacheKey);
   if (cachedData) {
     console.log(`Cache Hit: [${cacheKey}]`);
@@ -152,7 +152,7 @@ export const fetchStockDetailService = async (ticker: string) => {
 };
 
 export const fetchExploreStocksService = async () => {
-  const cacheKey = "stocks:explore";
+  const cacheKey = "stocks:explore:v2";
   const cachedData = await getCache(cacheKey);
   if (cachedData) {
     console.log(`Cache Hit: [${cacheKey}]`);

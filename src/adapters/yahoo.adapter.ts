@@ -1,6 +1,8 @@
 import yahooFinance from "../config/yahoo-finance.js";
 
 export const enrichWithRealtimeQuotes = async (dbStocks: any[]) => {
+  if (!dbStocks || dbStocks.length === 0) return [];
+
   try {
     const symbols = dbStocks.map((s) => `${s.ticker.trim()}.JK`);
     // Menggunakan bulk request (1 kali request untuk semua saham) 
