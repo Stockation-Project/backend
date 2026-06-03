@@ -88,15 +88,20 @@ export const fetchStockDetailService = async (ticker: string) => {
   const startDate = new Date();
   startDate.setFullYear(endDate.getFullYear() - 1);
 
-  const chartResult: any = await yahooFinance.chart(yahooTicker, {
-    period1: startDate.toISOString().split("T")[0],
-    period2: endDate.toISOString().split("T")[0],
-    interval: "1d",
-  });
-  const chartData = chartResult.quotes.map((item: any) => ({
-    date: item.date,
-    price: item.close,
-  }));
+  let chartData: any[] = [];
+  try {
+    const chartResult: any = await yahooFinance.chart(yahooTicker, {
+      period1: startDate.toISOString().split("T")[0],
+      period2: endDate.toISOString().split("T")[0],
+      interval: "1d",
+    });
+    chartData = chartResult.quotes.map((item: any) => ({
+      date: item.date,
+      price: item.close,
+    }));
+  } catch (error) {
+    console.warn(`Gagal mengambil data chart untuk ${yahooTicker}`);
+  }
 
   // 4. Ambil Data AI Anomali (Panggil dari Util)
   const { anomalyHistory, aiSummary, isAnomalyActive } =
