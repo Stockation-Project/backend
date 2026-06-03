@@ -40,7 +40,7 @@ export const fetchAllStocksService = async () => {
 export const fetchStockDetailService = async (ticker: string) => {
   const cleanTicker = ticker.toUpperCase().replace(".JK", "");
 
-  const cacheKey = `stock:detail:${cleanTicker}`;
+  const cacheKey = `stock:detail:v2:${cleanTicker}`;
   const cachedData = await getCache(cacheKey);
   if (cachedData) {
     console.log(`Cache Hit: [${cacheKey}]`);
@@ -181,7 +181,7 @@ export const fetchExploreStocksService = async () => {
 };
 
 export const fetchRecommendedStocksService = async (userId: string) => {
-  const cacheKey = `stocks:recommendations:${userId}`;
+  const cacheKey = `stocks:recommendations:v2:${userId}`;
   const cachedData = await getCache(cacheKey);
   if (cachedData) {
     console.log(`Cache Hit: [${cacheKey}]`);
