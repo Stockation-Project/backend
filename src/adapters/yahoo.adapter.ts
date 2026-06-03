@@ -7,8 +7,21 @@ export const enrichWithRealtimeQuotes = async (dbStocks: any[]) => {
     const symbols = dbStocks.map((s) => `${s.ticker.trim()}.JK`);
     // Menggunakan bulk request (1 kali request untuk semua saham) 
     // Ini sangat krusial untuk mencegah pemblokiran IP oleh Yahoo Finance
-    const quotes: any = await yahooFinance.quote(symbols);
-    const quotesArray = Array.isArray(quotes) ? quotes : [quotes];
+    let quotesArray: any[] = [];
+    try {
+      const quotes: any = await yahooFinance.quote(symbols);
+      quotesArray = Array.isArray(quotes) ? quotes : [quotes];
+    } catch (bulkError) {
+      console.warn("Bulk fetch gagal, mencoba fetch satu per satu secara berurutan...");
+      for (const symbol of symbols) {
+        try {
+          const q = await yahooFinance.quote(symbol);
+          quotesArray.push(q);
+        } catch (individualError) {
+          console.warn(`Gagal fetch saham individu: ${symbol}`);
+        }
+      }
+    }
     
     return dbStocks.map((dbStock) => {
       const cleanTicker = dbStock.ticker.trim();

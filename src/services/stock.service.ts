@@ -50,8 +50,13 @@ export const fetchStockDetailService = async (ticker: string) => {
   const yahooTicker = `${cleanTicker}.JK`;
 
   const dbStock: any = await getStockDetailFromDB(cleanTicker);
-  const quote: any = await yahooFinance.quote(yahooTicker);
-  const companyName = dbStock ? dbStock.name : quote.longName;
+  let quote: any = {};
+  try {
+    quote = await yahooFinance.quote(yahooTicker);
+  } catch (error) {
+    console.warn(`Gagal fetch quote detail untuk ${yahooTicker}`);
+  }
+  const companyName = dbStock ? dbStock.name : quote?.longName || cleanTicker;
 
   // 1. Ambil Data Fundamental
   let der = null;
@@ -76,7 +81,7 @@ export const fetchStockDetailService = async (ticker: string) => {
   }
 
   // 2. Kalkulasi CAGR (Panggil dari Util)
-  const cagr3Y = await calculateCAGR3Y(yahooTicker, quote.regularMarketPrice);
+  const cagr3Y = quote?.regularMarketPrice ? await calculateCAGR3Y(yahooTicker, quote.regularMarketPrice) : null;
 
   // 3. Ambil Data Grafik 1 Tahun
   const endDate = new Date();
@@ -131,13 +136,13 @@ export const fetchStockDetailService = async (ticker: string) => {
     name: companyName,
     risk_level: dbStock ? dbStock.risk_level : "Unknown",
     is_anomaly: isAnomalyActive,
-    current_price: quote.regularMarketPrice,
-    per: quote.trailingPE || null,
+    current_price: quote?.regularMarketPrice || 0,
+    per: quote?.trailingPE || null,
     der,
     dividend,
     cagr: cagr3Y,
-    day_high: quote.regularMarketDayHigh,
-    day_low: quote.regularMarketDayLow,
+    day_high: quote?.regularMarketDayHigh || 0,
+    day_low: quote?.regularMarketDayLow || 0,
     chart_data: chartData,
     anomaly_history: anomalyHistory,
     ai_summary: aiSummary,
