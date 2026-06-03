@@ -1,10 +1,17 @@
 import yahooFinance from "../config/yahoo-finance.js";
 
 export const enrichWithRealtimeQuotes = async (dbStocks: any[]) => {
-  const promises = dbStocks.map(async (dbStock) => {
-    const cleanTicker = dbStock.ticker.trim();
-    try {
-      const quote: any = await yahooFinance.quote(`${cleanTicker}.JK`);
+  try {
+    const symbols = dbStocks.map((s) => `${s.ticker.trim()}.JK`);
+    // Menggunakan bulk request (1 kali request untuk semua saham) 
+    // Ini sangat krusial untuk mencegah pemblokiran IP oleh Yahoo Finance
+    const quotes: any = await yahooFinance.quote(symbols);
+    const quotesArray = Array.isArray(quotes) ? quotes : [quotes];
+    
+    return dbStocks.map((dbStock) => {
+      const cleanTicker = dbStock.ticker.trim();
+      const quote = quotesArray.find((q: any) => q.symbol === `${cleanTicker}.JK`);
+      
       return {
         ticker: cleanTicker,
         name: dbStock.name,
@@ -13,18 +20,18 @@ export const enrichWithRealtimeQuotes = async (dbStocks: any[]) => {
         current_price: quote?.regularMarketPrice || 0,
         change_percent: quote?.regularMarketChangePercent || 0,
       };
-    } catch (error) {
-      return {
-        ticker: cleanTicker,
-        name: dbStock.name,
-        risk_level: dbStock.risk_level,
-        is_anomaly: dbStock.is_anomaly,
-        current_price: 0,
-        change_percent: 0,
-      };
-    }
-  });
-  return Promise.all(promises);
+    });
+  } catch (error: any) {
+    console.error("Gagal bulk fetch Yahoo Finance:", error.message);
+    return dbStocks.map((dbStock) => ({
+      ticker: dbStock.ticker.trim(),
+      name: dbStock.name,
+      risk_level: dbStock.risk_level,
+      is_anomaly: dbStock.is_anomaly,
+      current_price: 0,
+      change_percent: 0,
+    }));
+  }
 };
 
 export const calculateCAGR3Y = async (
