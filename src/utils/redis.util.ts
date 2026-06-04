@@ -46,3 +46,24 @@ export const delCache = async (key: string) => {
     await redisClient.del(key);
   } catch (error) {}
 };
+
+// Stale cache — salinan data dengan TTL jauh lebih panjang (48 jam).
+// Digunakan sebagai fallback saat Yahoo Finance tidak bisa diakses.
+const STALE_TTL = 172800; // 48 jam dalam detik
+
+export const setStaleCache = async (key: string, data: any) => {
+  if (!isRedisConnected) return;
+  try {
+    await redisClient.setEx(`stale:${key}`, STALE_TTL, JSON.stringify(data));
+  } catch (error) {}
+};
+
+export const getStaleCache = async (key: string) => {
+  if (!isRedisConnected) return null;
+  try {
+    const data = await redisClient.get(`stale:${key}`);
+    return data ? JSON.parse(data) : null;
+  } catch (error) {
+    return null;
+  }
+};

@@ -18,6 +18,8 @@ import {
   getSmartTTL,
   getCache,
   setCache,
+  setStaleCache,
+  getStaleCache,
   redisClient,
 } from "../utils/redis.util.js";
 
@@ -51,11 +53,23 @@ export const fetchStockDetailService = async (ticker: string) => {
 
   const dbStock: any = await getStockDetailFromDB(cleanTicker);
   let quote: any = {};
+  let quoteFetchFailed = false;
   try {
     quote = await yahooFinance.quote(yahooTicker);
   } catch (error) {
     console.warn(`Gagal fetch quote detail untuk ${yahooTicker}`);
+    quoteFetchFailed = true;
   }
+
+  // Jika quote gagal total, coba kembalikan data stale cache
+  if (quoteFetchFailed && !quote?.regularMarketPrice) {
+    const staleData = await getStaleCache(cacheKey);
+    if (staleData) {
+      console.log(`⏳ Stale Cache Fallback: [${cacheKey}]`);
+      return staleData;
+    }
+  }
+
   const companyName = dbStock ? dbStock.name : quote?.longName || cleanTicker;
 
   // 1. Ambil Data Fundamental
@@ -158,6 +172,10 @@ export const fetchStockDetailService = async (ticker: string) => {
   };
 
   await setCache(cacheKey, getSmartTTL(), result);
+  // Simpan stale cache hanya jika data valid (harga > 0)
+  if (result.current_price > 0) {
+    await setStaleCache(cacheKey, result);
+  }
   return result;
 };
 
@@ -176,6 +194,19 @@ export const fetchExploreStocksService = async () => {
   // Panggil dari Util
   const mergedData = await enrichWithRealtimeQuotes(dbStocks);
 
+  // Cek apakah Yahoo Finance berhasil (minimal 1 saham punya harga > 0)
+  const hasValidPrices = mergedData.some((s: any) => s.current_price > 0);
+
+  if (!hasValidPrices) {
+    // Yahoo Finance gagal total — coba stale cache
+    const staleData = await getStaleCache(cacheKey);
+    if (staleData) {
+      console.log(`⏳ Stale Cache Fallback: [${cacheKey}]`);
+      return staleData;
+    }
+    console.warn("⚠️ Yahoo Finance gagal & tidak ada stale cache untuk explore.");
+  }
+
   const gainers = [...mergedData]
     .filter((s) => s.change_percent > 0)
     .sort((a, b) => b.change_percent - a.change_percent)
@@ -187,6 +218,10 @@ export const fetchExploreStocksService = async () => {
 
   const result = { gainers, losers, all_stocks: mergedData };
   await setCache(cacheKey, getSmartTTL(), result);
+  // Simpan stale cache hanya jika data valid
+  if (hasValidPrices) {
+    await setStaleCache(cacheKey, result);
+  }
   return result;
 };
 
@@ -218,6 +253,18 @@ export const fetchRecommendedStocksService = async (userId: string) => {
   // Panggil dari Util
   const recommendations = await enrichWithRealtimeQuotes(finalStocks);
 
+  // Cek apakah Yahoo Finance berhasil
+  const hasValidPrices = recommendations.some((s: any) => s.current_price > 0);
+
+  if (!hasValidPrices) {
+    const staleData = await getStaleCache(cacheKey);
+    if (staleData) {
+      console.log(`⏳ Stale Cache Fallback: [${cacheKey}]`);
+      return staleData;
+    }
+    console.warn("⚠️ Yahoo Finance gagal & tidak ada stale cache untuk rekomendasi.");
+  }
+
   const result = {
     user_risk_profile: userPersona,
     mapped_risk_level: targetRiskLevel,
@@ -225,5 +272,9 @@ export const fetchRecommendedStocksService = async (userId: string) => {
   };
 
   await setCache(cacheKey, getSmartTTL(), result);
+  // Simpan stale cache hanya jika data valid
+  if (hasValidPrices) {
+    await setStaleCache(cacheKey, result);
+  }
   return result;
 };
