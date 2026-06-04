@@ -57,7 +57,7 @@ export const setStaleCache = async (key: string, data: any) => {
     await redisClient.setEx(`stale:${key}`, STALE_TTL, JSON.stringify(data));
   } catch (error) {}
 };
-
+//mm
 export const getStaleCache = async (key: string) => {
   if (!isRedisConnected) return null;
   try {
