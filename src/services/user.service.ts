@@ -238,7 +238,14 @@ export const getUserProfileService = async (userId: string) => {
 };
 
 export const updateUserProfileService = async (userId: string, updates: any) => {
-  return await updateUserById(userId, updates);
+  // Sanitasi: konversi string kosong menjadi null untuk field yang bertipe
+  // DATE di PostgreSQL agar tidak memicu error "invalid input syntax for type date"
+  const sanitized = { ...updates };
+  if (sanitized.dob !== undefined && sanitized.dob === "") {
+    sanitized.dob = null;
+  }
+
+  return await updateUserById(userId, sanitized);
 };
 
 export const uploadAvatarService = async (userId: string, base64Image: string, userToken: string) => {
