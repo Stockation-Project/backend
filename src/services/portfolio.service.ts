@@ -80,6 +80,8 @@ export const optimizePortfolioService = async (
   userId: string,
   tickers: string[],
   riskTolerance?: number | null,
+  method?: string,
+  periodKey?: string,
 ) => {
   if (!tickers || tickers.length < 2) {
     throw new Error("Minimal 2 saham dibutuhkan untuk melakukan optimasi portofolio.");
@@ -111,12 +113,17 @@ export const optimizePortfolioService = async (
     t.endsWith(".JK") ? t : `${t.trim().toUpperCase()}.JK`
   );
 
+  const allowedPeriods = ["3_bulan", "6_bulan", "1_tahun", "3_tahun", "5_tahun", "10_tahun"];
+  const effectiveMethod = "mean_cvar";
+  const effectivePeriod = allowedPeriods.includes(periodKey || "") ? periodKey : "1_tahun";
+
   // 4. Panggil microservice ML (FastAPI)
   const mlResponse = await aiClient.post("/api/ai/optimize", {
     tickers: formattedTickers,
     risk_profile: mlProfile,
     risk_tolerance: effectiveRiskTolerance,
-    period_key: "1_tahun",
+    period_key: effectivePeriod,
+    method: effectiveMethod,
   });
 
   if (!mlResponse.data || !mlResponse.data.success) {
@@ -131,11 +138,22 @@ export const optimizePortfolioService = async (
     cleanWeights[cleanKey] = value as number;
   }
 
+  const pairwiseDownside = (mlResponse.data.data.metadata?.pairwise_downside || []).map(
+    (pair: any) => ({
+      ...pair,
+      ticker_a: String(pair.ticker_a).replace(".JK", ""),
+      ticker_b: String(pair.ticker_b).replace(".JK", ""),
+    }),
+  );
+
   return {
     weights: cleanWeights,
     metrics: mlResponse.data.data.metrics,
     method: mlResponse.data.data.method,
     risk_profile: mlProfile,
-    metadata: mlResponse.data.data.metadata,
+    metadata: {
+      ...mlResponse.data.data.metadata,
+      pairwise_downside: pairwiseDownside,
+    },
   };
 };
