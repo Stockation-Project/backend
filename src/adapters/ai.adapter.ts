@@ -4,13 +4,14 @@ import { updateStockAnomalyStatus } from "../models/stock.model.js";
 export const fetchAndMapAIAnomalies = async (
   cleanTicker: string,
   companyName: string,
+  yahooTicker: string,
 ) => {
   let anomalyHistory = [];
   let aiSummary = "Data analisis AI belum tersedia.";
   let isAnomalyActive = false;
 
   try {
-    const aiResponse = await aiClient.get(`/api/ai/anomalies/${cleanTicker}`);
+    const aiResponse = await aiClient.get(`/api/ai/anomalies/${yahooTicker}`);
 
     if (aiResponse.data && aiResponse.data.success) {
       const rawAnomalies = aiResponse.data.anomalies;

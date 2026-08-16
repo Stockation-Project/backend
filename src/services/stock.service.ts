@@ -119,7 +119,7 @@ export const fetchStockDetailService = async (ticker: string) => {
 
   // 4. Ambil Data AI Anomali (Panggil dari Util)
   const { anomalyHistory, aiSummary, isAnomalyActive } =
-    await fetchAndMapAIAnomalies(cleanTicker, companyName);
+    await fetchAndMapAIAnomalies(cleanTicker, companyName, yahooTicker);
 
   // 4.5. Ambil Data AI Volatilitas
   let volatilityData = null;
